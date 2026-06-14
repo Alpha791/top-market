@@ -5,34 +5,22 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* ==================== GRADIENT BACKGROUND (Attractive but subtle) ==================== */
+/* Animated gradient background */
 body {
-    background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    background: linear-gradient(125deg, #0f172a, #1e1b4b, #2e1065, #0f172a);
+    background-size: 300% 300%;
+    animation: gradientFlow 12s ease infinite;
     min-height: 100vh;
     color: #f1f5f9;
-    position: relative;
 }
 
-/* Subtle animated background effect */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
-/* All main content sits above background */
-header, main, .live-section, .post-form, .listings {
-    position: relative;
-    z-index: 1;
-}
-
-/* ==================== HEADER (Frosted Glass) ==================== */
+/* Frosted glass header */
 header {
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(12px);
@@ -40,9 +28,8 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     flex-wrap: wrap;
-    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    border-bottom: 1px solid rgba(129, 140, 248, 0.3);
 }
 
 .logo {
@@ -54,12 +41,6 @@ header {
     color: transparent;
 }
 
-.logo i {
-    color: #818cf8;
-    margin-right: 0.5rem;
-}
-
-/* ==================== BUTTONS ==================== */
 .btn-outline {
     background: transparent;
     border: 1px solid #818cf8;
@@ -67,15 +48,7 @@ header {
     border-radius: 20px;
     cursor: pointer;
     color: #818cf8;
-    font-weight: 500;
-    transition: all 0.2s;
 }
-
-.btn-outline:hover {
-    background: #818cf8;
-    color: #0f172a;
-}
-
 .btn-primary {
     background: linear-gradient(135deg, #818cf8, #c084fc);
     color: #0f172a;
@@ -84,14 +57,7 @@ header {
     border-radius: 24px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.2s;
 }
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(129, 140, 248, 0.4);
-}
-
 .btn-sm {
     background: #ef4444;
     color: white;
@@ -99,17 +65,23 @@ header {
     padding: 0.25rem 0.6rem;
     border-radius: 16px;
     cursor: pointer;
-    font-size: 0.8rem;
+}
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
 }
 
-/* ==================== MAIN CONTAINER ==================== */
 main {
     max-width: 1300px;
     margin: 1rem auto;
     padding: 0 0.8rem;
 }
 
-/* ==================== LIVE SECTION (COMPACT - NO LARGE CAMERAS) ==================== */
+/* Compact live section */
 .live-section {
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(8px);
@@ -118,57 +90,27 @@ main {
     margin-bottom: 1.5rem;
     border: 1px solid rgba(129, 140, 248, 0.2);
 }
-
-.live-section h2 {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-    color: #c084fc;
-}
-
 .live-container {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 16px;
     padding: 0.5rem;
 }
-
-.video-wrapper {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-/* Compact video boxes - much smaller */
-.video-box {
-    background: #0f0f1a;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    flex: 1;
-    min-width: 140px;
-    max-width: 200px;
-    aspect-ratio: 4 / 3;
-    border: 1px solid rgba(129, 140, 248, 0.3);
-}
-
-.video-box video {
+.jitsi-frame-container {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 480px;
+    height: 270px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-
-.video-label {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-size: 8px;
-    z-index: 2;
+@media (max-width: 700px) {
+    .jitsi-frame-container {
+        height: 200px;
+        max-width: 100%;
+    }
 }
-
 .live-controls {
     display: flex;
     gap: 0.5rem;
@@ -176,78 +118,46 @@ main {
     justify-content: center;
     margin-top: 0.8rem;
 }
-
 .live-btn {
-    padding: 6px 12px;
-    font-size: 11px;
-    border-radius: 20px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 40px;
 }
-
-.btn-warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: white;
-}
-
-.btn-secondary {
-    background: linear-gradient(135deg, #64748b, #475569);
-    color: white;
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-}
-
 .live-status {
     text-align: center;
+    font-size: 0.75rem;
     margin-top: 0.5rem;
     color: #a5f3fc;
-    font-weight: bold;
-    background: rgba(0, 0, 0, 0.4);
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    width: auto;
+}
+.room-info {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #c084fc;
+    word-break: break-all;
 }
 
-/* ==================== POST FORM ==================== */
+/* Forms and listings */
 .post-form, .listings {
     background: rgba(15, 23, 42, 0.7);
     backdrop-filter: blur(8px);
     border-radius: 20px;
     padding: 1rem;
     margin-bottom: 1.5rem;
-    border: 1px solid rgba(129, 140, 248, 0.2);
 }
-
 h2 {
-    margin-bottom: 0.8rem;
     font-size: 1.2rem;
+    margin-bottom: 0.8rem;
     color: #c084fc;
 }
-
 .form-card input, .form-card textarea {
     width: 100%;
     padding: 0.8rem;
     margin-bottom: 0.8rem;
     border: 1px solid #334155;
     border-radius: 12px;
-    font-size: 0.9rem;
     background: #1e293b;
     color: #f1f5f9;
 }
-
-.form-card input:focus, .form-card textarea:focus {
-    outline: none;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
-}
-
-.form-card input::placeholder, .form-card textarea::placeholder {
-    color: #94a3b8;
-}
-
 .file-label {
     display: block;
     background: #1e293b;
@@ -255,96 +165,63 @@ h2 {
     text-align: center;
     border-radius: 12px;
     cursor: pointer;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #c084fc;
     border: 1px dashed #818cf8;
+    color: #c084fc;
 }
-
 .image-preview {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 0.8rem;
 }
-
 .image-preview img {
     width: 60px;
     height: 60px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #818cf8;
 }
-
-/* ==================== LISTINGS GRID ==================== */
 .listings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
 }
-
 .card {
     background: #1e293b;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s;
     border: 1px solid rgba(129, 140, 248, 0.2);
 }
-
-.card:hover {
-    transform: translateY(-4px);
-}
-
 .card-images {
     display: flex;
     overflow-x: auto;
     gap: 4px;
-    background: #0f172a;
     padding: 6px;
+    background: #0f172a;
 }
-
 .card-images img {
     width: 80px;
     height: 80px;
     object-fit: cover;
     border-radius: 8px;
 }
-
 .card-content {
     padding: 0.8rem;
 }
-
 .card-title {
-    font-size: 1rem;
     font-weight: bold;
-    color: #f1f5f9;
 }
-
 .card-price {
     color: #34d399;
-    font-weight: bold;
     margin: 0.3rem 0;
-    font-size: 1rem;
 }
-
-.card-desc {
-    color: #cbd5e1;
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
 .seller-info {
     background: #0f172a;
     padding: 0.4rem;
     border-radius: 8px;
     font-size: 0.75rem;
-    line-height: 1.4;
-    color: #94a3b8;
 }
 
-/* ==================== MODALS ==================== */
+/* Modals */
 .modal {
     display: none;
     position: fixed;
@@ -352,133 +229,66 @@ h2 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0,0,0,0.7);
     backdrop-filter: blur(4px);
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
-
 .modal-content {
     background: #1e293b;
     padding: 1.5rem;
     border-radius: 20px;
     width: 90%;
     max-width: 350px;
-    position: relative;
     border: 1px solid #818cf8;
 }
-
-.modal-content h3 {
-    color: #c084fc;
-    margin-bottom: 1rem;
-}
-
 .modal-content input {
     width: 100%;
     padding: 0.7rem;
-    margin: 0.5rem 0 0.8rem;
+    margin: 0.5rem 0;
+    background: #0f172a;
     border: 1px solid #334155;
     border-radius: 10px;
-    background: #0f172a;
-    color: #f1f5f9;
+    color: white;
 }
-
-.modal-content button {
-    width: 100%;
-    background: linear-gradient(135deg, #818cf8, #c084fc);
-    color: #0f172a;
-    border: none;
-    padding: 0.7rem;
-    border-radius: 24px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
 .close {
-    position: absolute;
-    right: 1rem;
-    top: 0.5rem;
+    float: right;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #94a3b8;
 }
 
-.close:hover {
-    color: #ef4444;
-}
-
-/* ==================== TOAST NOTIFICATIONS (FIXED POSITION - NO OVERLAP) ==================== */
+/* Toast notifications */
 .toast-container {
     position: fixed;
-    bottom: 20px;
+    top: 80px;
     right: 20px;
-    left: auto;
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-width: 280px;
+    gap: 10px;
+    max-width: 320px;
 }
-
 .toast {
-    background: #1e293b;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
-    padding: 10px 14px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    border-left: 4px solid;
     animation: slideInRight 0.3s ease;
-    border-left: 3px solid;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(129, 140, 248, 0.3);
+    color: white;
 }
-
-.toast-success {
-    border-left-color: #34d399;
-}
-.toast-success i {
-    color: #34d399;
-}
-
-.toast-error {
-    border-left-color: #ef4444;
-}
-.toast-error i {
-    color: #ef4444;
-}
-
-.toast-info {
-    border-left-color: #818cf8;
-}
-.toast-info i {
-    color: #818cf8;
-}
-
-.toast-warning {
-    border-left-color: #f59e0b;
-}
-.toast-warning i {
-    color: #f59e0b;
-}
-
-.toast i {
-    font-size: 1rem;
-}
-
-.toast-message {
-    flex: 1;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #f1f5f9;
-}
-
-.toast-close {
-    cursor: pointer;
-    color: #94a3b8;
-    font-size: 0.8rem;
-}
+.toast i { font-size: 1.2rem; }
+.toast-message { flex: 1; font-size: 0.85rem; }
+.toast-close { cursor: pointer; opacity: 0.7; }
+.toast-success { border-left-color: #10b981; }
+.toast-error { border-left-color: #ef4444; }
+.toast-warning { border-left-color: #f59e0b; }
+.toast-info { border-left-color: #3b82f6; }
 
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
@@ -487,128 +297,15 @@ h2 {
 @keyframes fadeOut {
     to { opacity: 0; transform: translateX(100%); }
 }
-.toast.fade-out {
-    animation: fadeOut 0.3s forwards;
-}
+.toast.fade-out { animation: fadeOut 0.3s forwards; }
 
-/* ==================== LOADING STATE ==================== */
-.loading {
-    text-align: center;
-    color: #94a3b8;
-    padding: 2rem;
-    font-size: 0.9rem;
-}
-
-/* ==================== MOBILE SPECIFIC (max-width 700px) ==================== */
 @media (max-width: 700px) {
-    header {
-        flex-direction: column;
-        gap: 8px;
-        padding: 0.6rem 1rem;
-    }
-    
-    .logo {
-        font-size: 1.1rem;
-    }
-    
-    .auth-buttons {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-    
-    .auth-buttons button {
-        margin: 0;
-        padding: 5px 10px;
-        font-size: 12px;
-    }
-    
-    main {
-        padding: 0 0.6rem;
-        margin: 0.5rem auto;
-    }
-    
-    /* Even smaller video boxes on mobile */
-    .video-box {
-        min-width: 120px;
-        max-width: 160px;
-    }
-    
-    .live-controls {
-        gap: 6px;
-    }
-    
-    .live-btn {
-        padding: 5px 10px;
-        font-size: 10px;
-    }
-    
-    .post-form, .listings {
-        padding: 0.8rem;
-    }
-    
-    h2 {
-        font-size: 1rem;
-    }
-    
-    .form-card input, .form-card textarea {
-        padding: 10px;
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
-    
-    .btn-primary {
-        width: 100%;
-        padding: 12px;
-        font-size: 14px;
-    }
-    
-    .listings-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .card-images img {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .card-title {
-        font-size: 0.95rem;
-    }
-    
-    .card-price {
-        font-size: 0.9rem;
-    }
-    
-    /* Toast on bottom for mobile (better visibility) */
     .toast-container {
-        bottom: 10px;
+        top: auto;
+        bottom: 20px;
         right: 10px;
         left: 10px;
         max-width: none;
     }
-    
-    .toast {
-        padding: 8px 12px;
-    }
-    
-    .toast-message {
-        font-size: 12px;
-    }
-}
-
-/* ==================== DESKTOP improvements ==================== */
-@media (min-width: 701px) {
-    .video-box {
-        min-width: 200px;
-        max-width: 280px;
-    }
-    
-    .toast-container {
-        top: 80px;
-        bottom: auto;
-    }
+    .listings-grid { grid-template-columns: 1fr; }
 }
