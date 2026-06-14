@@ -1,0 +1,53 @@
+<?php
+// api/token.php
+
+// ==================== AGORA CREDENTIALS ====================
+// 🔴 REPLACE WITH YOUR OWN Agora App ID and App Certificate
+$appID = "<?php
+// api/token.php
+
+// ==================== AGORA CREDENTIALS ====================
+// 🔴 REPLACE WITH YOUR OWN Agora App ID and App Certificate
+$appID = "f140367426c046e1b6284a35f07547c7";                // 32-character string
+$appCertificate = "0b5374b1c40e4919b4bb97ef2bd00ecf"; // 32-character string
+
+$channelName = "the_hive";
+$uid = isset($_GET['uid']) ? intval($_GET['uid']) : 0;
+$role = 1; // 1 = publisher (host), 2 = subscriber (audience)
+$expireTimeInSeconds = 86400 * 30; // 30 days
+
+// ==================== TOKEN GENERATION (NO external libs) ====================
+function buildRtcToken($appID, $appCertificate, $channelName, $uid, $role, $expireTimeInSeconds) {
+    $timestamp = time() + $expireTimeInSeconds;
+    $salt = rand(1, 99999999);
+    $uidInt = ($uid >= 0 && $uid <= 4294967295) ? $uid : 0;
+    $content = pack('V', $salt) . pack('V', $timestamp) . pack('v', $uidInt) . pack('v', $role);
+    $signature = hash_hmac('sha256', $appID . $channelName . $content, $appCertificate, true);
+    $token = bin2hex($appID) . ':' . bin2hex($appCertificate) . ':' . bin2hex($content) . ':' . bin2hex($signature);
+    return $token;
+}
+
+header('Content-Type: application/json');
+echo json_encode(['token' => buildRtcToken($appID, $appCertificate, $channelName, $uid, $role, $expireTimeInSeconds)]);
+?>";                // 32-character string
+$appCertificate = "YOUR_AGORA_APP_CERTIFICATE"; // 32-character string
+
+$channelName = "the_hive_live";
+$uid = isset($_GET['uid']) ? intval($_GET['uid']) : 0;
+$role = 1; // 1 = publisher (host), 2 = subscriber (audience)
+$expireTimeInSeconds = 86400 * 30; // 30 days
+
+// ==================== TOKEN GENERATION (NO external libs) ====================
+function buildRtcToken($appID, $appCertificate, $channelName, $uid, $role, $expireTimeInSeconds) {
+    $timestamp = time() + $expireTimeInSeconds;
+    $salt = rand(1, 99999999);
+    $uidInt = ($uid >= 0 && $uid <= 4294967295) ? $uid : 0;
+    $content = pack('V', $salt) . pack('V', $timestamp) . pack('v', $uidInt) . pack('v', $role);
+    $signature = hash_hmac('sha256', $appID . $channelName . $content, $appCertificate, true);
+    $token = bin2hex($appID) . ':' . bin2hex($appCertificate) . ':' . bin2hex($content) . ':' . bin2hex($signature);
+    return $token;
+}
+
+header('Content-Type: application/json');
+echo json_encode(['token' => buildRtcToken($appID, $appCertificate, $channelName, $uid, $role, $expireTimeInSeconds)]);
+?>
