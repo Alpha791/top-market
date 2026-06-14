@@ -12,21 +12,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-console.log("✅ Firebase initialized (Firestore + Auth)");
+console.log("✅ Firebase initialized");
 
-// ==================== CLOUDINARY CONFIGURATION ====================
+// ==================== CLOUDINARY ====================
 const CLOUDINARY_CLOUD_NAME = "dpsj8cuoq";
 const CLOUDINARY_UPLOAD_PRESET = "dpsj8cuoq";
 
-// ==================== DOM ELEMENTS ====================
 const listingsGrid = document.getElementById('listingsGrid');
 const postBtn = document.getElementById('postItemBtn');
 const itemImages = document.getElementById('itemImages');
 const imagePreview = document.getElementById('imagePreview');
-
 let currentUser = null;
 
-// ==================== CUSTOM TOAST (no browser alerts) ====================
+// ==================== TOAST ====================
 function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -39,32 +37,16 @@ function showToast(message, type = 'success') {
         case 'warning': icon = 'fa-exclamation-triangle'; break;
         default: icon = 'fa-info-circle';
     }
-    toast.innerHTML = `
-        <i class="fas ${icon}"></i>
-        <span class="toast-message">${message}</span>
-        <i class="fas fa-times toast-close"></i>
-    `;
+    toast.innerHTML = `<i class="fas ${icon}"></i><span class="toast-message">${message}</span><i class="fas fa-times toast-close"></i>`;
     container.appendChild(toast);
     const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.onclick = () => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 300);
-    };
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.classList.add('fade-out');
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 4000);
+    closeBtn.onclick = () => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); };
+    setTimeout(() => { if (toast.parentElement) { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); } }, 4000);
 }
 
-// ==================== FIREBASE AUTH UI ====================
-function showModal(modalId) {
-    document.getElementById(modalId).style.display = 'flex';
-}
-function closeModals() {
-    document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
-}
+// ==================== AUTH UI ====================
+function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
 function updateAuthUI(user) {
     currentUser = user;
     const authDiv = document.querySelector('.auth-buttons');
@@ -74,8 +56,8 @@ function updateAuthUI(user) {
         authDiv.querySelector('#showLoginBtn').style.display = 'none';
         authDiv.querySelector('#showSignupBtn').style.display = 'none';
         userInfoDiv.style.display = 'inline-block';
-        userNameSpan.textContent = user.email ? user.email.split('@')[0] : 'User';
-        showToast(`Welcome back, ${userNameSpan.textContent}!`, 'success');
+        userNameSpan.textContent = user.email.split('@')[0];
+        showToast(`Welcome back!`, 'success');
     } else {
         authDiv.querySelector('#showLoginBtn').style.display = 'inline-block';
         authDiv.querySelector('#showSignupBtn').style.display = 'inline-block';
@@ -89,17 +71,13 @@ async function uploadImagesToCloudinary(files) {
     const urls = [];
     const maxFiles = Math.min(files.length, 3);
     for (let i = 0; i < maxFiles; i++) {
-        const file = files[i];
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', files[i]);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         try {
-            const response = await fetch(
-                `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-                { method: 'POST', body: formData }
-            );
-            if (!response.ok) throw new Error('Upload failed');
-            const data = await response.json();
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('Upload failed');
+            const data = await res.json();
             urls.push(data.secure_url);
         } catch (err) {
             showToast(`Image ${i+1} failed: ${err.message}`, 'error');
@@ -136,8 +114,7 @@ postBtn.addEventListener('click', async () => {
     try {
         if (files.length) postData.images = await uploadImagesToCloudinary(files);
         await db.collection('listings').add(postData);
-        showToast('Item posted successfully!', 'success');
-        // Clear form
+        showToast('Item posted!', 'success');
         document.getElementById('itemTitle').value = '';
         document.getElementById('itemDesc').value = '';
         document.getElementById('itemPrice').value = '';
@@ -155,7 +132,6 @@ postBtn.addEventListener('click', async () => {
     }
 });
 
-// Image preview
 itemImages.addEventListener('change', () => {
     const files = Array.from(itemImages.files);
     imagePreview.innerHTML = '';
@@ -170,39 +146,28 @@ itemImages.addEventListener('change', () => {
     });
 });
 
-// Load listings
 function loadListings() {
     db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        if (snapshot.empty) {
-            listingsGrid.innerHTML = '<p class="loading">📭 No items yet. Be the first to sell!</p>';
-            return;
-        }
+        if (snapshot.empty) { listingsGrid.innerHTML = '<p class="loading">📭 No items yet.</p>'; return; }
         let html = '';
         snapshot.forEach(doc => {
             const data = doc.data();
-            const imagesHtml = data.images && data.images.length ? 
-                `<div class="card-images">${data.images.map(img => `<img src="${img}" alt="product" loading="lazy">`).join('')}</div>` : 
-                '<div class="card-images"><i class="fas fa-image" style="padding:1rem;"></i></div>';
-            html += `
-                <div class="card">
-                    ${imagesHtml}
-                    <div class="card-content">
-                        <div class="card-title">${escapeHtml(data.title)}</div>
-                        <div class="card-price">💰 $${data.price}</div>
-                        <div class="card-desc">${escapeHtml(data.description.substring(0, 100))}${data.description.length > 100 ? '...' : ''}</div>
-                        <div class="seller-info">
-                            <i class="fas fa-user"></i> ${escapeHtml(data.seller.name)}<br>
-                            <i class="fas fa-envelope"></i> ${escapeHtml(data.seller.email)}<br>
-                            ${data.seller.phone ? `<i class="fas fa-phone"></i> ${escapeHtml(data.seller.phone)}` : ''}
-                        </div>
+            const imagesHtml = data.images?.length ? `<div class="card-images">${data.images.map(img => `<img src="${img}">`).join('')}</div>` : '<div class="card-images"><i class="fas fa-image"></i></div>';
+            html += `<div class="card">
+                ${imagesHtml}
+                <div class="card-content">
+                    <div class="card-title">${escapeHtml(data.title)}</div>
+                    <div class="card-price">💰 $${data.price}</div>
+                    <div class="card-desc">${escapeHtml(data.description.substring(0, 100))}</div>
+                    <div class="seller-info">
+                        <i class="fas fa-user"></i> ${escapeHtml(data.seller.name)}<br>
+                        <i class="fas fa-envelope"></i> ${escapeHtml(data.seller.email)}<br>
+                        ${data.seller.phone ? `<i class="fas fa-phone"></i> ${escapeHtml(data.seller.phone)}` : ''}
                     </div>
                 </div>
-            `;
+            </div>`;
         });
         listingsGrid.innerHTML = html;
-    }, error => {
-        console.error(error);
-        listingsGrid.innerHTML = '<p class="loading">❌ Error loading items. Check your Firebase rules.</p>';
     });
 }
 
@@ -216,7 +181,7 @@ function escapeHtml(str) {
     });
 }
 
-// ==================== JITSI MEET INTEGRATION (FIXED CAMERA ACCESS) ====================
+// ==================== JITSI (SIMPLIFIED IFRAME, AUTO CAMERA) ====================
 const frameContainer = document.getElementById('jitsiFrameContainer');
 const startBtn = document.getElementById('startJitsiBtn');
 const joinBtn = document.getElementById('joinJitsiBtn');
@@ -225,18 +190,6 @@ const liveStatusSpan = document.getElementById('liveStatus');
 const roomInfoSpan = document.getElementById('roomInfo');
 
 let currentRoom = null;
-let jitsiApi = null;
-
-// Helper: request camera permission before loading Jitsi
-async function requestCameraPermission() {
-    try {
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        return true;
-    } catch (err) {
-        showToast('Camera/microphone access denied. Please allow permissions.', 'error');
-        return false;
-    }
-}
 
 function generateRoomName() {
     if (currentUser) return `thehive_${currentUser.uid}_${Date.now()}`;
@@ -245,88 +198,38 @@ function generateRoomName() {
 
 function loadJitsi(roomName, isHost) {
     frameContainer.style.display = 'block';
-    // Clear previous iframe
     frameContainer.innerHTML = '';
-    // Create iframe with extensive permissions
     const iframe = document.createElement('iframe');
-    iframe.id = 'jitsiFrame';
-    iframe.allow = 'camera *; microphone *; display-capture *; autoplay; fullscreen';
+    const domain = 'meet.jit.si';
+    // Force video & audio to start automatically
+    const url = `https://${domain}/${roomName}#config.startWithVideoMuted=false&config.startWithAudioMuted=false&userInfo.displayName=${encodeURIComponent(currentUser?.email || 'Guest')}`;
+    iframe.src = url;
+    iframe.allow = 'camera; microphone; display-capture; autoplay; fullscreen';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = '0';
     frameContainer.appendChild(iframe);
 
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: frameContainer,
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            disableDeepLinking: true,
-            enableWelcomePage: false,
-            disableInviteFunctions: true,
-            prejoinPageEnabled: false,
-            toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'hangup', 'settings']
-        },
-        interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'fullscreen', 'hangup', 'settings']
-        }
-    };
-    if (window.JitsiMeetExternalAPI) {
-        jitsiApi = new JitsiMeetExternalAPI(domain, roomName, options);
-    } else {
-        const script = document.createElement('script');
-        script.src = `https://${domain}/external_api.js`;
-        script.onload = () => {
-            jitsiApi = new JitsiMeetExternalAPI(domain, roomName, options);
-        };
-        document.head.appendChild(script);
-    }
-    roomInfoSpan.innerText = `🔑 Room: ${roomName} (share this link with buyers)`;
-    liveStatusSpan.innerText = isHost ? "🔴 You are LIVE (host)" : "👀 Watching live stream";
+    roomInfoSpan.innerText = `🔑 Room: ${roomName} (share link)`;
+    liveStatusSpan.innerText = isHost ? "🔴 You are LIVE" : "👀 Watching live stream";
     startBtn.style.display = 'none';
     joinBtn.style.display = 'none';
     endBtn.style.display = 'inline-flex';
 }
 
-startBtn.onclick = async () => {
-    if (!currentUser) {
-        showToast('Please login to start a live stream', 'warning');
-        return;
-    }
-    if (currentRoom) {
-        showToast('A live stream is already active. End it first.', 'warning');
-        return;
-    }
-    // Request camera permission explicitly before loading Jitsi
-    const granted = await requestCameraPermission();
-    if (!granted) return;
+startBtn.onclick = () => {
+    if (!currentUser) { showToast('Please login first', 'warning'); return; }
+    if (currentRoom) { showToast('Already live, end it first', 'warning'); return; }
     currentRoom = generateRoomName();
     loadJitsi(currentRoom, true);
 };
 
-joinBtn.onclick = async () => {
-    if (!currentRoom) {
-        showToast('No active live stream. Ask the seller to start first.', 'warning');
-        return;
-    }
-    const granted = await requestCameraPermission();
-    if (!granted) {
-        // Even as viewer, some browsers need mic/cam for receiving? Not strictly, but we'll allow.
-        // Continue without permission? Better to show warning but still try.
-        showToast('Camera/mic access helps you interact, but you can watch without.', 'info');
-    }
+joinBtn.onclick = () => {
+    if (!currentRoom) { showToast('No active live stream', 'warning'); return; }
     loadJitsi(currentRoom, false);
 };
 
 endBtn.onclick = () => {
-    if (jitsiApi) {
-        jitsiApi.dispose();
-        jitsiApi = null;
-    }
     frameContainer.style.display = 'none';
     frameContainer.innerHTML = '';
     currentRoom = null;
@@ -338,7 +241,7 @@ endBtn.onclick = () => {
     showToast('Live stream ended', 'info');
 };
 
-// ==================== AUTH HANDLERS ====================
+// ==================== AUTH ====================
 document.getElementById('showLoginBtn').onclick = () => showModal('loginModal');
 document.getElementById('showSignupBtn').onclick = () => showModal('signupModal');
 document.querySelectorAll('.close').forEach(btn => btn.onclick = closeModals);
@@ -357,32 +260,16 @@ document.getElementById('doSignupBtn').onclick = async () => {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const pwd = document.getElementById('signupPassword').value;
-    if (!name || !email || !pwd) {
-        showToast('Please fill all fields', 'warning');
-        return;
-    }
+    if (!name || !email || !pwd) { showToast('Please fill all fields', 'warning'); return; }
     try {
         const cred = await auth.createUserWithEmailAndPassword(email, pwd);
         await cred.user.updateProfile({ displayName: name });
         closeModals();
-        showToast('Account created! You can now post items.', 'success');
+        showToast('Account created!', 'success');
     } catch (err) { showToast(err.message, 'error'); }
 };
 
-document.getElementById('logoutBtn').onclick = () => {
-    auth.signOut();
-    showToast('Logged out', 'info');
-};
+document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
-auth.onAuthStateChanged(user => {
-    updateAuthUI(user);
-    loadListings();
-});
-
+auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
 loadListings();
-
-// ==================== OPTIONAL PARTICLE BACKGROUND (commented) ====================
-/*
-function initParticleBackground() { ... }
-initParticleBackground();
-*/
