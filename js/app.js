@@ -8,7 +8,7 @@ const AGORA_APP_ID = "f140367426c046e1b6284a35f07547c7";
 const AGORA_CHANNEL = "the_hive";
 
 // Token endpoint – points to your PHP script (must be on the same server)
-const TOKEN_SERVER_URL = "/api/token.php";
+const TOKEN_SERVER_URL = "https://agoratk.alpha39frigates.workers.dev/";
 
 // ==================== DOM ELEMENTS ====================
 const listingsGrid = document.getElementById('listingsGrid');
