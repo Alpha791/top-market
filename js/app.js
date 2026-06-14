@@ -158,7 +158,7 @@ function loadListings() {
                 ${imagesHtml}
                 <div class="card-content">
                     <div class="card-title">${escapeHtml(data.title)}</div>
-                    <div class="card-price">💰 $${data.price}</div>
+                    <div class="card-price">💰 KES${data.price}</div>
                     <div class="card-desc">${escapeHtml(data.description.substring(0, 100))}</div>
                     <div class="seller-info">
                         <i class="fas fa-user"></i> ${escapeHtml(data.seller.name)}<br>
