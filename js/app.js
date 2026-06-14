@@ -15,7 +15,7 @@ console.log("✅ Firebase initialized");
 
 // ==================== CLOUDINARY ====================
 const CLOUDINARY_CLOUD_NAME = "dpsj8cuoq";
-const CLOUDINARY_UPLOAD_PRESET = "dpsj8cuoq";
+const CLOUDINARY_UPLOAD_PRESET = "marketplace";
 
 // ==================== DOM ELEMENTS ====================
 const listingsGrid = document.getElementById('listingsGrid');
