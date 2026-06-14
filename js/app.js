@@ -109,7 +109,7 @@ async function uploadImagesToCloudinary(files) {
     return urls;
 }
 
-// ==================== POST ITEM (with toasts) ====================
+// ==================== POST ITEM ====================
 postBtn.addEventListener('click', async () => {
     const title = document.getElementById('itemTitle').value.trim();
     const desc = document.getElementById('itemDesc').value.trim();
@@ -216,7 +216,7 @@ function escapeHtml(str) {
     });
 }
 
-// ==================== JITSI MEET INTEGRATION (FREE, NO TOKEN) ====================
+// ==================== JITSI MEET INTEGRATION (FIXED CAMERA ACCESS) ====================
 const frameContainer = document.getElementById('jitsiFrameContainer');
 const startBtn = document.getElementById('startJitsiBtn');
 const joinBtn = document.getElementById('joinJitsiBtn');
@@ -227,6 +227,17 @@ const roomInfoSpan = document.getElementById('roomInfo');
 let currentRoom = null;
 let jitsiApi = null;
 
+// Helper: request camera permission before loading Jitsi
+async function requestCameraPermission() {
+    try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        return true;
+    } catch (err) {
+        showToast('Camera/microphone access denied. Please allow permissions.', 'error');
+        return false;
+    }
+}
+
 function generateRoomName() {
     if (currentUser) return `thehive_${currentUser.uid}_${Date.now()}`;
     return `thehive_guest_${Math.random().toString(36).substring(7)}`;
@@ -234,7 +245,17 @@ function generateRoomName() {
 
 function loadJitsi(roomName, isHost) {
     frameContainer.style.display = 'block';
-    frameContainer.innerHTML = '<iframe id="jitsiFrame" allow="camera; microphone; display-capture" style="width:100%; height:100%; border:0;"></iframe>';
+    // Clear previous iframe
+    frameContainer.innerHTML = '';
+    // Create iframe with extensive permissions
+    const iframe = document.createElement('iframe');
+    iframe.id = 'jitsiFrame';
+    iframe.allow = 'camera *; microphone *; display-capture *; autoplay; fullscreen';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    frameContainer.appendChild(iframe);
+
     const domain = 'meet.jit.si';
     const options = {
         roomName: roomName,
@@ -247,6 +268,7 @@ function loadJitsi(roomName, isHost) {
             disableDeepLinking: true,
             enableWelcomePage: false,
             disableInviteFunctions: true,
+            prejoinPageEnabled: false,
             toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'hangup', 'settings']
         },
         interfaceConfigOverwrite: {
@@ -270,7 +292,7 @@ function loadJitsi(roomName, isHost) {
     endBtn.style.display = 'inline-flex';
 }
 
-startBtn.onclick = () => {
+startBtn.onclick = async () => {
     if (!currentUser) {
         showToast('Please login to start a live stream', 'warning');
         return;
@@ -279,14 +301,23 @@ startBtn.onclick = () => {
         showToast('A live stream is already active. End it first.', 'warning');
         return;
     }
+    // Request camera permission explicitly before loading Jitsi
+    const granted = await requestCameraPermission();
+    if (!granted) return;
     currentRoom = generateRoomName();
     loadJitsi(currentRoom, true);
 };
 
-joinBtn.onclick = () => {
+joinBtn.onclick = async () => {
     if (!currentRoom) {
         showToast('No active live stream. Ask the seller to start first.', 'warning');
         return;
+    }
+    const granted = await requestCameraPermission();
+    if (!granted) {
+        // Even as viewer, some browsers need mic/cam for receiving? Not strictly, but we'll allow.
+        // Continue without permission? Better to show warning but still try.
+        showToast('Camera/mic access helps you interact, but you can watch without.', 'info');
     }
     loadJitsi(currentRoom, false);
 };
@@ -307,7 +338,7 @@ endBtn.onclick = () => {
     showToast('Live stream ended', 'info');
 };
 
-// ==================== AUTH HANDLERS (with toasts) ====================
+// ==================== AUTH HANDLERS ====================
 document.getElementById('showLoginBtn').onclick = () => showModal('loginModal');
 document.getElementById('showSignupBtn').onclick = () => showModal('signupModal');
 document.querySelectorAll('.close').forEach(btn => btn.onclick = closeModals);
@@ -350,58 +381,8 @@ auth.onAuthStateChanged(user => {
 
 loadListings();
 
-// ==================== OPTIONAL: INTERACTIVE PARTICLE BACKGROUND ====================
-// Uncomment the code below if you want floating particles behind the content
+// ==================== OPTIONAL PARTICLE BACKGROUND (commented) ====================
 /*
-function initParticleBackground() {
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.zIndex = '-1';
-    canvas.style.pointerEvents = 'none';
-    document.body.prepend(canvas);
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-    class Particle {
-        constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 2 + 1;
-            this.speedX = (Math.random() - 0.5) * 0.5;
-            this.speedY = (Math.random() - 0.5) * 0.5;
-            this.color = `rgba(129, 140, 248, ${Math.random() * 0.3 + 0.1})`;
-        }
-        update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
-            if (this.x < 0) this.x = canvas.width;
-            if (this.x > canvas.width) this.x = 0;
-            if (this.y < 0) this.y = canvas.height;
-            if (this.y > canvas.height) this.y = 0;
-        }
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-        }
-    }
-    for (let i = 0; i < 60; i++) particles.push(new Particle());
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
-    }
-    animate();
-}
+function initParticleBackground() { ... }
 initParticleBackground();
 */
