@@ -287,4 +287,45 @@ document.getElementById('doSignupBtn').onclick = async () => {
 document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
 auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
+// ========== INTERACTIVE LIGHT ORB (FOLLOWS CURSOR / TOUCH) ==========
+(function initLightOrb() {
+    let ticking = false;
+    
+    function updatePosition(xPercent, yPercent) {
+        document.body.style.setProperty('--x', `${xPercent}%`);
+        document.body.style.setProperty('--y', `${yPercent}%`);
+    }
+
+    function handleMove(clientX, clientY) {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                const x = (clientX / window.innerWidth) * 100;
+                const y = (clientY / window.innerHeight) * 100;
+                updatePosition(x, y);
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+
+    // Mouse move
+    document.body.addEventListener('mousemove', (e) => {
+        handleMove(e.clientX, e.clientY);
+    });
+
+    // Touch move (mobile)
+    document.body.addEventListener('touchmove', (e) => {
+        if (e.touches.length) {
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    });
+
+    // Reset to center on window resize
+    window.addEventListener('resize', () => {
+        updatePosition(50, 50);
+    });
+
+    // Set default center position on load
+    updatePosition(50, 50);
+})();
 loadListings();
