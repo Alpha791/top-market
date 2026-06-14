@@ -4,50 +4,81 @@
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+/* Gradient Background */
 body {
-    background: #f5f7fb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
     color: #1e293b;
 }
+
+/* Frosted glass effect for header */
 header {
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
 }
+
 .logo {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #3b82f6;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
+
 .logo i {
+    color: #764ba2;
     margin-right: 0.5rem;
 }
+
 .auth-buttons button {
     margin-left: 0.5rem;
+    transition: transform 0.2s;
 }
+
+.auth-buttons button:hover {
+    transform: translateY(-2px);
+}
+
 .btn-outline {
     background: transparent;
-    border: 1px solid #3b82f6;
+    border: 1px solid #667eea;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     cursor: pointer;
-    color: #3b82f6;
+    color: #667eea;
+    font-weight: 500;
 }
+
+.btn-outline:hover {
+    background: #667eea;
+    color: white;
+}
+
 .btn-primary {
-    background: #3b82f6;
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border: none;
     padding: 0.7rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .btn-primary:hover {
-    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
+
 .btn-sm {
     background: #ef4444;
     color: white;
@@ -55,23 +86,35 @@ header {
     padding: 0.3rem 0.8rem;
     border-radius: 6px;
     cursor: pointer;
+    transition: transform 0.2s;
 }
+
+.btn-sm:hover {
+    transform: scale(1.05);
+}
+
 main {
     max-width: 1300px;
     margin: 2rem auto;
     padding: 0 1rem;
 }
+
 .post-form, .listings {
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
     border-radius: 20px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
 }
+
 h2 {
     margin-bottom: 1rem;
     font-size: 1.5rem;
+    color: #2d3748;
 }
+
 .form-card input, .form-card textarea {
     width: 100%;
     padding: 0.8rem;
@@ -79,44 +122,71 @@ h2 {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     font-size: 1rem;
+    transition: all 0.2s;
 }
+
+.form-card input:focus, .form-card textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .file-label {
     display: block;
-    background: #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
     padding: 0.8rem;
     text-align: center;
     border-radius: 12px;
     cursor: pointer;
     margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #4a5568;
+    transition: all 0.2s;
 }
+
+.file-label:hover {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
 .image-preview {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 1rem;
 }
+
 .image-preview img {
     width: 80px;
     height: 80px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 2px solid #e2e8f0;
+    transition: transform 0.2s;
 }
+
+.image-preview img:hover {
+    transform: scale(1.05);
+}
+
 .listings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
+
 .card {
     background: white;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15);
 }
+
 .card-images {
     display: flex;
     overflow-x: auto;
@@ -124,35 +194,52 @@ h2 {
     background: #f8fafc;
     padding: 8px;
 }
+
 .card-images img {
     width: 100px;
     height: 100px;
     object-fit: cover;
     border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
 }
+
+.card-images img:hover {
+    opacity: 0.9;
+}
+
 .card-content {
     padding: 1rem;
 }
+
 .card-title {
     font-size: 1.2rem;
     font-weight: bold;
+    color: #2d3748;
 }
+
 .card-price {
     color: #10b981;
     font-weight: bold;
     margin: 0.5rem 0;
+    font-size: 1.1rem;
 }
+
 .card-desc {
     color: #475569;
     font-size: 0.9rem;
     margin-bottom: 0.8rem;
+    line-height: 1.4;
 }
+
 .seller-info {
     background: #f8fafc;
     padding: 0.5rem;
     border-radius: 8px;
     font-size: 0.85rem;
+    line-height: 1.5;
 }
+
 .modal {
     display: none;
     position: fixed;
@@ -161,10 +248,12 @@ h2 {
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
+
 .modal-content {
     background: white;
     padding: 2rem;
@@ -172,18 +261,50 @@ h2 {
     width: 90%;
     max-width: 400px;
     position: relative;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
+
+.modal-content input {
+    width: 100%;
+    padding: 0.8rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.modal-content button {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+
 .close {
     position: absolute;
     right: 1rem;
     top: 0.5rem;
     font-size: 1.8rem;
     cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.2s;
 }
+
+.close:hover {
+    color: #ef4444;
+}
+
 .loading {
     text-align: center;
     color: #64748b;
+    padding: 2rem;
+    font-size: 1.1rem;
 }
+
 @media (max-width: 700px) {
     header {
         flex-direction: column;
@@ -192,5 +313,8 @@ h2 {
     .auth-buttons {
         width: 100%;
         text-align: center;
+    }
+    .listings-grid {
+        grid-template-columns: 1fr;
     }
 }
