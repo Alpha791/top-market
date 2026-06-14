@@ -182,7 +182,7 @@ function escapeHtml(str) {
     });
 }
 
-// =======// ==================== JITSI MEET (NO WATERMARK) ====================
+// ==================== VDO.NINJA LIVE VIDEO ====================
 const frameContainer = document.getElementById('liveFrameContainer');
 const startBtn = document.getElementById('startLiveBtn');
 const joinBtn = document.getElementById('joinLiveBtn');
@@ -194,15 +194,14 @@ const liveInfoSpan = document.getElementById('liveInfo');
 let currentRoomId = null;
 
 function generateRoomId() {
-    return `thehive_${Math.random().toString(36).substring(2, 10)}`;
+    return `hive_${Math.random().toString(36).substring(2, 10)}`;
 }
 
-function loadJitsi(roomId, isHost) {
+function loadVdoNinja(roomId, isHost) {
     frameContainer.style.display = 'block';
     frameContainer.innerHTML = '';
-    const domain = 'meet.jit.si';
-    // Force video & audio to start automatically, disable welcome page
-    const url = `https://${domain}/${roomId}#config.startWithVideoMuted=false&config.startWithAudioMuted=false&userInfo.displayName=${encodeURIComponent(currentUser?.email || 'Guest')}`;
+    const base = 'https://vdo.ninja';
+    const url = isHost ? `${base}/?room=${roomId}&push&label=Seller` : `${base}/?room=${roomId}&view`;
     const iframe = document.createElement('iframe');
     iframe.src = url;
     iframe.allow = 'camera; microphone; display-capture; autoplay; fullscreen';
@@ -211,7 +210,7 @@ function loadJitsi(roomId, isHost) {
     iframe.style.border = '0';
     frameContainer.appendChild(iframe);
     liveInfoSpan.innerText = isHost ? `🔑 Your room ID: ${roomId} (share with buyers)` : `🔑 Watching room: ${roomId}`;
-    liveStatusSpan.innerText = isHost ? "🔴 You are LIVE (host)" : "👀 Watching live stream";
+    liveStatusSpan.innerText = isHost ? "🔴 You are LIVE" : "👀 Watching live stream";
     startBtn.style.display = 'none';
     joinBtn.style.display = 'none';
     endBtn.style.display = 'inline-flex';
@@ -223,11 +222,10 @@ startBtn.onclick = async () => {
     if (!currentUser) { showToast('Please login to start', 'warning'); return; }
     if (currentRoomId) { showToast('Already live', 'warning'); return; }
     try {
-        // Pre-request camera permission
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         stream.getTracks().forEach(t => t.stop());
         const roomId = generateRoomId();
-        loadJitsi(roomId, true);
+        loadVdoNinja(roomId, true);
     } catch (err) {
         showToast('Camera/mic access denied. Please allow permissions.', 'error');
     }
@@ -235,15 +233,15 @@ startBtn.onclick = async () => {
 
 joinBtn.onclick = () => {
     if (!currentRoomId) {
-        const manualId = prompt("Enter the seller's room ID (e.g., thehive_abc123):");
+        const manualId = prompt("Enter the seller's room ID (e.g., hive_abc123):");
         if (manualId && manualId.trim()) {
-            loadJitsi(manualId.trim(), false);
+            loadVdoNinja(manualId.trim(), false);
         } else {
             showToast('No active live stream. Ask the seller for room ID.', 'warning');
         }
         return;
     }
-    loadJitsi(currentRoomId, false);
+    loadVdoNinja(currentRoomId, false);
 };
 
 endBtn.onclick = () => {
@@ -258,7 +256,6 @@ endBtn.onclick = () => {
     liveStatusSpan.innerText = '⚡ Ready';
     showToast('Live stream ended', 'info');
 };
-
 
 // ==================== FULLSCREEN TOGGLE ====================
 function toggleFullscreen() {
