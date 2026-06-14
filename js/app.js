@@ -182,11 +182,12 @@ function escapeHtml(str) {
     });
 }
 
-// ==================== VDO.NINJA LIVE VIDEO (NO JITSI, NO DAILY) ====================
+// ==================== VDO.NINJA LIVE VIDEO ====================
 const frameContainer = document.getElementById('liveFrameContainer');
 const startBtn = document.getElementById('startLiveBtn');
 const joinBtn = document.getElementById('joinLiveBtn');
 const endBtn = document.getElementById('endLiveBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
 const liveStatusSpan = document.getElementById('liveStatus');
 const liveInfoSpan = document.getElementById('liveInfo');
 
@@ -213,6 +214,7 @@ function loadVdoNinja(roomId, isHost) {
     startBtn.style.display = 'none';
     joinBtn.style.display = 'none';
     endBtn.style.display = 'inline-flex';
+    fullscreenBtn.style.display = 'inline-flex';
     currentRoomId = roomId;
 }
 
@@ -220,7 +222,6 @@ startBtn.onclick = async () => {
     if (!currentUser) { showToast('Please login to start', 'warning'); return; }
     if (currentRoomId) { showToast('Already live', 'warning'); return; }
     try {
-        // Pre-request camera permission to avoid browser blocking
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         stream.getTracks().forEach(t => t.stop());
         const roomId = generateRoomId();
@@ -232,7 +233,6 @@ startBtn.onclick = async () => {
 
 joinBtn.onclick = () => {
     if (!currentRoomId) {
-        // If no room ID exists, prompt user to enter one (in case seller shared it verbally)
         const manualId = prompt("Enter the seller's room ID (e.g., hive_abc123):");
         if (manualId && manualId.trim()) {
             loadVdoNinja(manualId.trim(), false);
@@ -251,10 +251,44 @@ endBtn.onclick = () => {
     startBtn.style.display = 'inline-flex';
     joinBtn.style.display = 'inline-flex';
     endBtn.style.display = 'none';
+    fullscreenBtn.style.display = 'none';
     liveInfoSpan.innerText = '';
     liveStatusSpan.innerText = '⚡ Ready';
     showToast('Live stream ended', 'info');
 };
+
+// ==================== FULLSCREEN TOGGLE ====================
+function toggleFullscreen() {
+    if (!frameContainer) return;
+    if (!document.fullscreenElement) {
+        if (frameContainer.requestFullscreen) {
+            frameContainer.requestFullscreen();
+        } else if (frameContainer.webkitRequestFullscreen) {
+            frameContainer.webkitRequestFullscreen();
+        } else if (frameContainer.msRequestFullscreen) {
+            frameContainer.msRequestFullscreen();
+        }
+        fullscreenBtn.innerHTML = '🗗 Exit';
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        fullscreenBtn.innerHTML = '⛶ Fullscreen';
+    }
+}
+
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+document.addEventListener('fullscreenchange', () => {
+    fullscreenBtn.innerHTML = document.fullscreenElement ? '🗗 Exit' : '⛶ Fullscreen';
+});
+document.addEventListener('webkitfullscreenchange', () => {
+    fullscreenBtn.innerHTML = document.webkitFullscreenElement ? '🗗 Exit' : '⛶ Fullscreen';
+});
 
 // ==================== AUTH EVENT HANDLERS ====================
 document.getElementById('showLoginBtn').onclick = () => showModal('loginModal');
@@ -287,15 +321,15 @@ document.getElementById('doSignupBtn').onclick = async () => {
 document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
 auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
-// ========== INTERACTIVE LIGHT ORB (FOLLOWS CURSOR / TOUCH) ==========
+loadListings();
+
+// ==================== INTERACTIVE LIGHT ORB ====================
 (function initLightOrb() {
     let ticking = false;
-    
     function updatePosition(xPercent, yPercent) {
         document.body.style.setProperty('--x', `${xPercent}%`);
         document.body.style.setProperty('--y', `${yPercent}%`);
     }
-
     function handleMove(clientX, clientY) {
         if (!ticking) {
             requestAnimationFrame(() => {
@@ -307,25 +341,10 @@ auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
             ticking = true;
         }
     }
-
-    // Mouse move
-    document.body.addEventListener('mousemove', (e) => {
-        handleMove(e.clientX, e.clientY);
-    });
-
-    // Touch move (mobile)
+    document.body.addEventListener('mousemove', (e) => { handleMove(e.clientX, e.clientY); });
     document.body.addEventListener('touchmove', (e) => {
-        if (e.touches.length) {
-            handleMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
+        if (e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY);
     });
-
-    // Reset to center on window resize
-    window.addEventListener('resize', () => {
-        updatePosition(50, 50);
-    });
-
-    // Set default center position on load
+    window.addEventListener('resize', () => updatePosition(50, 50));
     updatePosition(50, 50);
 })();
-loadListings();
