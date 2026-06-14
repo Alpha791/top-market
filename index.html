@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Hive – Buy & Sell</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>The Hive 🐝</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Cloudinary SDK (for direct uploads, no widget) -->
+    <!-- Agora Web SDK v4 -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
+    <!-- Cloudinary Widget (for images) -->
     <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Custom Toast Container (no github.io branding) -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <header>
         <div class="logo"><i class="fas fa-store"></i> The Hive</div>
         <div class="auth-buttons">
@@ -28,7 +33,32 @@
     </header>
 
     <main>
-        <!-- Post Item Form -->
+        <!-- ================= LIVE SELLING SECTION (Agora) ================= -->
+        <section class="live-section">
+            <h2><i class="fas fa-video"></i> Live Selling</h2>
+            <div class="live-container">
+                <div class="video-wrapper">
+                    <div class="video-box" id="localVideoBox">
+                        <div class="video-label">📹 Your Camera (Seller)</div>
+                        <div id="localVideo"></div>
+                    </div>
+                    <div class="video-box" id="remoteVideoBox">
+                        <div class="video-label">👀 Live Stream (Buyers)</div>
+                        <div id="remoteVideo"></div>
+                    </div>
+                </div>
+                <div class="live-controls">
+                    <button id="startLiveBtn" class="btn-primary live-btn">🔴 Go Live (Seller)</button>
+                    <button id="stopLiveBtn" class="btn-danger live-btn" style="display:none;">⏹️ Stop Stream</button>
+                    <button id="muteMicBtn" class="btn-warning live-btn" style="display:none;">🎤 Mute Mic</button>
+                    <button id="switchCamBtn" class="btn-secondary live-btn" style="display:none;">🔄 Switch Camera</button>
+                    <button id="watchLiveBtn" class="btn-primary live-btn">👁️ Watch Live (Buyer)</button>
+                </div>
+                <div id="liveStatus" class="live-status">⚡ Ready</div>
+            </div>
+        </section>
+
+        <!-- ================= POST ITEM FORM (unchanged) ================= -->
         <section class="post-form">
             <h2><i class="fas fa-plus-circle"></i> Sell an Item</h2>
             <div class="form-card">
@@ -45,7 +75,7 @@
             </div>
         </section>
 
-        <!-- Listings Grid -->
+        <!-- ================= LISTINGS GRID (unchanged) ================= -->
         <section class="listings">
             <h2><i class="fas fa-list-ul"></i> Available Items</h2>
             <div id="listingsGrid" class="listings-grid">
@@ -54,7 +84,7 @@
         </section>
     </main>
 
-    <!-- Modals for Authentication -->
+    <!-- Auth Modals (unchanged) -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
