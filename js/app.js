@@ -1,3 +1,9 @@
+// ==================== CLOUDINARY CONFIGURATION ====================
+// 🔴 REPLACE THESE WITH YOUR CLOUDINARY CREDENTIALS 🔴
+const CLOUDINARY_CLOUD_NAME = "dpsj8cuoq";
+const CLOUDINARY_UPLOAD_PRESET = "dpsj8cuoq";
+// ==================================================================
+
 // DOM elements
 const listingsGrid = document.getElementById('listingsGrid');
 const postBtn = document.getElementById('postItemBtn');
@@ -33,24 +39,45 @@ function updateAuthUI(user) {
     }
 }
 
-// Upload images to Firebase Storage (up to 3)
-async function uploadImages(files) {
-    if (!files.length) return [];
+// ==================== CLOUDINARY UPLOAD FUNCTION ====================
+// Upload images to Cloudinary (replaces Firebase Storage)
+async function uploadImagesToCloudinary(files) {
+    if (!files || files.length === 0) return [];
+    
     const urls = [];
     const maxFiles = Math.min(files.length, 3);
+    
     for (let i = 0; i < maxFiles; i++) {
         const file = files[i];
-        const ext = file.name.split('.').pop();
-        const filename = `${Date.now()}_${i}.${ext}`;
-        const storageRef = storage.ref(`listings/${filename}`);
-        await storageRef.put(file);
-        const url = await storageRef.getDownloadURL();
-        urls.push(url);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        
+        try {
+            const response = await fetch(
+                `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+                { method: 'POST', body: formData }
+            );
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Upload failed');
+            }
+            
+            const data = await response.json();
+            urls.push(data.secure_url); // Cloudinary returns HTTPS URL
+            console.log(`✅ Uploaded image ${i+1}: ${data.secure_url}`);
+        } catch (err) {
+            console.error(`❌ Cloudinary upload error for image ${i+1}:`, err);
+            alert(`Failed to upload image ${i+1}: ${err.message}\nCheck your Cloudinary credentials.`);
+            throw err; // Stop the posting process
+        }
     }
     return urls;
 }
+// ====================================================================
 
-// Post item (works with or without login)
+// Post item (works with or without login, now using Cloudinary)
 postBtn.addEventListener('click', async () => {
     const title = document.getElementById('itemTitle').value.trim();
     const desc = document.getElementById('itemDesc').value.trim();
@@ -60,10 +87,15 @@ postBtn.addEventListener('click', async () => {
     const sellerPhone = document.getElementById('sellerPhone').value.trim();
     const files = itemImages.files;
 
+    // Validation
     if (!title || !desc || isNaN(price) || !sellerName || !sellerEmail) {
         alert('Please fill required fields: Title, Description, Price, Your Name and Email.');
         return;
     }
+
+    // Disable button during upload
+    postBtn.disabled = true;
+    postBtn.textContent = 'Uploading images...';
 
     const postData = {
         title,
@@ -76,11 +108,15 @@ postBtn.addEventListener('click', async () => {
     };
 
     try {
-        if (files.length) {
-            postData.images = await uploadImages(files);
+        // Upload images to Cloudinary (instead of Firebase Storage)
+        if (files.length > 0) {
+            postData.images = await uploadImagesToCloudinary(files);
         }
+        
+        // Save to Firestore
         await db.collection('listings').add(postData);
-        alert('Item posted successfully!');
+        alert('✅ Item posted successfully with Cloudinary images!');
+        
         // Clear form
         document.getElementById('itemTitle').value = '';
         document.getElementById('itemDesc').value = '';
@@ -90,14 +126,19 @@ postBtn.addEventListener('click', async () => {
         document.getElementById('sellerPhone').value = '';
         itemImages.value = '';
         imagePreview.innerHTML = '';
+        
+        // Reload listings
         loadListings();
     } catch (err) {
-        console.error(err);
-        alert('Error posting item: ' + err.message);
+        console.error('Post error:', err);
+        alert('❌ Error posting item: ' + err.message);
+    } finally {
+        postBtn.disabled = false;
+        postBtn.textContent = 'Post Item';
     }
 });
 
-// Image preview
+// Image preview (unchanged)
 itemImages.addEventListener('change', () => {
     const files = Array.from(itemImages.files);
     imagePreview.innerHTML = '';
@@ -112,25 +153,25 @@ itemImages.addEventListener('change', () => {
     });
 });
 
-// Load all listings in real time
+// Load all listings in real time (unchanged)
 function loadListings() {
     db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
         if (snapshot.empty) {
-            listingsGrid.innerHTML = '<p class="loading">No items yet. Be the first to sell!</p>';
+            listingsGrid.innerHTML = '<p class="loading">📭 No items yet. Be the first to sell!</p>';
             return;
         }
         let html = '';
         snapshot.forEach(doc => {
             const data = doc.data();
             const imagesHtml = data.images && data.images.length ? 
-                `<div class="card-images">${data.images.map(img => `<img src="${img}" alt="product">`).join('')}</div>` : 
+                `<div class="card-images">${data.images.map(img => `<img src="${img}" alt="product" loading="lazy">`).join('')}</div>` : 
                 '<div class="card-images"><i class="fas fa-image" style="padding:1rem;"></i></div>';
             html += `
                 <div class="card">
                     ${imagesHtml}
                     <div class="card-content">
                         <div class="card-title">${escapeHtml(data.title)}</div>
-                        <div class="card-price">$${data.price}</div>
+                        <div class="card-price">💰 $${data.price}</div>
                         <div class="card-desc">${escapeHtml(data.description.substring(0, 100))}${data.description.length > 100 ? '...' : ''}</div>
                         <div class="seller-info">
                             <i class="fas fa-user"></i> ${escapeHtml(data.seller.name)}<br>
@@ -142,6 +183,9 @@ function loadListings() {
             `;
         });
         listingsGrid.innerHTML = html;
+    }, error => {
+        console.error("Firestore error:", error);
+        listingsGrid.innerHTML = '<p class="loading">❌ Error loading items. Check your Firebase rules.</p>';
     });
 }
 
@@ -155,7 +199,7 @@ function escapeHtml(str) {
     });
 }
 
-// Auth handlers
+// Auth handlers (unchanged)
 document.getElementById('showLoginBtn').onclick = () => showModal('loginModal');
 document.getElementById('showSignupBtn').onclick = () => showModal('signupModal');
 document.querySelectorAll('.close').forEach(btn => btn.onclick = closeModals);
@@ -166,23 +210,34 @@ document.getElementById('doLoginBtn').onclick = async () => {
     try {
         await auth.signInWithEmailAndPassword(email, pwd);
         closeModals();
-    } catch (err) { alert(err.message); }
+        alert('✅ Login successful!');
+    } catch (err) { alert('❌ ' + err.message); }
 };
+
 document.getElementById('doSignupBtn').onclick = async () => {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const pwd = document.getElementById('signupPassword').value;
+    if (!name || !email || !pwd) {
+        alert('Please fill all fields');
+        return;
+    }
     try {
         const cred = await auth.createUserWithEmailAndPassword(email, pwd);
         await cred.user.updateProfile({ displayName: name });
         closeModals();
-    } catch (err) { alert(err.message); }
+        alert('✅ Account created! You can now post items.');
+    } catch (err) { alert('❌ ' + err.message); }
 };
-document.getElementById('logoutBtn').onclick = () => auth.signOut();
+
+document.getElementById('logoutBtn').onclick = () => {
+    auth.signOut();
+    alert('Logged out');
+};
 
 auth.onAuthStateChanged(user => {
     updateAuthUI(user);
-    loadListings(); // refresh listings after login (no extra effect)
+    loadListings();
 });
 
 // Initial load
