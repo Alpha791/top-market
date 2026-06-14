@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>The Hive 🐝</title>
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (must load before app.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -15,42 +15,39 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Toast container (custom popups) -->
     <div id="toastContainer" class="toast-container"></div>
-
     <header>
         <div class="logo"><i class="fas fa-store"></i> The Hive</div>
         <div class="auth-buttons">
-            <button id="showLoginBtn" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Login</button>
-            <button id="showSignupBtn" class="btn-outline"><i class="fas fa-user-plus"></i> Sign Up</button>
+            <button id="showLoginBtn" class="btn-outline">Login</button>
+            <button id="showSignupBtn" class="btn-outline">Sign Up</button>
             <div id="userInfo" style="display:none;">
                 <span id="userName"></span>
                 <button id="logoutBtn" class="btn-sm">Logout</button>
             </div>
         </div>
     </header>
-
     <main>
-        <!-- ========== JITSI LIVE SELLING SECTION ========== -->
+        <!-- Live Section (Vdo.ninja) -->
         <section class="live-section">
-            <h2><i class="fas fa-video"></i> Live Selling (Jitsi Meet)</h2>
+            <h2><i class="fas fa-video"></i> Live Selling </h2>
             <div class="live-container">
-                <div id="jitsiFrameContainer" class="jitsi-frame-container" style="display: none;"></div>
+                <div id="liveFrameContainer" class="live-frame-container" style="display: none;"></div>
                 <div class="live-controls">
-                    <button id="startJitsiBtn" class="btn-primary live-btn">🔴 Start Live Selling</button>
-                    <button id="joinJitsiBtn" class="btn-primary live-btn">👁️ Join Live Stream</button>
-                    <button id="endJitsiBtn" class="btn-danger live-btn" style="display:none;">⏹️ End Stream</button>
+                    <button id="startLiveBtn" class="btn-primary live-btn">🔴 Start Live Selling</button>
+                    <button id="joinLiveBtn" class="btn-primary live-btn">👁️ Join Live Stream</button>
+                    <button id="endLiveBtn" class="btn-danger live-btn" style="display:none;">⏹️ End Stream</button>
                 </div>
                 <div id="liveStatus" class="live-status">⚡ Ready</div>
-                <div id="roomInfo" class="room-info"></div>
+                <div id="liveInfo" class="live-info"></div>
             </div>
         </section>
 
-        <!-- ========== SELL ITEM FORM ========== -->
+        <!-- Sell Item Form -->
         <section class="post-form">
             <h2><i class="fas fa-plus-circle"></i> Sell an Item</h2>
             <div class="form-card">
-                <input type="text" id="itemTitle" placeholder="Title *" required>
+                <input type="text" id="itemTitle" placeholder="Title *">
                 <textarea id="itemDesc" placeholder="Description *" rows="3"></textarea>
                 <input type="number" id="itemPrice" placeholder="Price (USD) *">
                 <input type="text" id="sellerName" placeholder="Your Name *">
@@ -59,16 +56,14 @@
                 <label class="file-label"><i class="fas fa-cloud-upload-alt"></i> Up to 3 images (Cloudinary)</label>
                 <input type="file" id="itemImages" accept="image/*" multiple>
                 <div id="imagePreview" class="image-preview"></div>
-                <button id="postItemBtn" class="btn-primary"><i class="fas fa-paper-plane"></i> Post Item</button>
+                <button id="postItemBtn" class="btn-primary">Post Item</button>
             </div>
         </section>
 
-        <!-- ========== LISTINGS GRID ========== -->
+        <!-- Listings Grid -->
         <section class="listings">
             <h2><i class="fas fa-list-ul"></i> Available Items</h2>
-            <div id="listingsGrid" class="listings-grid">
-                <p class="loading">Loading items...</p>
-            </div>
+            <div id="listingsGrid" class="listings-grid">Loading items...</div>
         </section>
     </main>
 
@@ -93,7 +88,6 @@
         </div>
     </div>
 
-    <script src="js/firebase-config.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
