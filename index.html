@@ -9,9 +9,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <!-- Cloudinary Widget -->
-    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,32 +20,37 @@
     <header>
         <div class="logo"><i class="fas fa-store"></i> The Hive</div>
         <div class="auth-buttons">
-            <button id="showLoginBtn" class="btn-outline">Login</button>
-            <button id="showSignupBtn" class="btn-outline">Sign Up</button>
-            <div id="userInfo" style="display:none;">
+            <button id="showLoginBtn">Login</button>
+            <button id="showSignupBtn">Sign Up</button>
+            <div id="userInfo">
                 <span id="userName"></span>
-                <button id="logoutBtn" class="btn-sm">Logout</button>
+                <button id="logoutBtn">Logout</button>
+            </div>
+            <div class="cart-icon" id="cartIcon">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count" id="cartCount">0</span>
             </div>
         </div>
     </header>
-    <main>
-        <!-- Live Section (Vdo.ninja) -->
+
+    <div class="container">
+        <!-- Live Section -->
         <section class="live-section">
             <h2><i class="fas fa-video"></i> Live Selling</h2>
             <div class="live-container">
-                <div id="liveFrameContainer" class="live-frame-container" style="display: none;"></div>
+                <div id="liveFrameContainer" class="live-frame-container" style="display:none;"></div>
                 <div class="live-controls">
-                    <button id="startLiveBtn" class="btn-primary live-btn">🔴 Start Live Selling</button>
-                    <button id="joinLiveBtn" class="btn-primary live-btn">👁️ Join Live Stream</button>
-                    <button id="endLiveBtn" class="btn-danger live-btn" style="display:none;">⏹️ End Stream</button>
-                    <button id="fullscreenBtn" class="btn-secondary live-btn" style="display:none;">⛶ Fullscreen</button>
+                    <button id="startLiveBtn" class="live-btn btn-primary">🔴 Start Live</button>
+                    <button id="joinLiveBtn" class="live-btn btn-primary">👁️ Join</button>
+                    <button id="endLiveBtn" class="live-btn btn-danger" style="display:none;">⏹️ End</button>
+                    <button id="fullscreenBtn" class="live-btn btn-secondary" style="display:none;">⛶ Fullscreen</button>
                 </div>
                 <div id="liveStatus" class="live-status">⚡ Ready</div>
                 <div id="liveInfo" class="live-info"></div>
             </div>
         </section>
 
-        <!-- Sell Item Form -->
+        <!-- Sell Form -->
         <section class="post-form">
             <h2><i class="fas fa-plus-circle"></i> Sell an Item</h2>
             <div class="form-card">
@@ -55,18 +61,18 @@
                 <input type="email" id="sellerEmail" placeholder="Your Email *">
                 <input type="tel" id="sellerPhone" placeholder="Phone (WhatsApp) *">
                 <label class="file-label"><i class="fas fa-cloud-upload-alt"></i> Up to 3 images</label>
-                <input type="file" id="itemImages" accept="image/*" multiple>
+                <input type="file" id="itemImages" accept="image/*" multiple style="display:none;">
                 <div id="imagePreview" class="image-preview"></div>
-                <button id="postItemBtn" class="btn-primary">Post Item</button>
+                <button id="postItemBtn" class="btn-primary" style="width:100%; padding:12px;">Post Item</button>
             </div>
         </section>
 
-        <!-- Listings Grid -->
+        <!-- Listings -->
         <section class="listings">
             <h2><i class="fas fa-list-ul"></i> Available Items</h2>
             <div id="listingsGrid" class="listings-grid">Loading items...</div>
         </section>
-    </main>
+    </div>
 
     <!-- Auth Modals -->
     <div id="loginModal" class="modal">
@@ -89,17 +95,27 @@
         </div>
     </div>
 
-    <!-- Order Modal (NEW) -->
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cartModalClose">&times;</span>
+            <h3><i class="fas fa-shopping-cart"></i> Your Cart</h3>
+            <div id="cartItems"></div>
+            <div id="cartTotal" class="cart-total"></div>
+            <button id="checkoutBtn">Proceed to Checkout</button>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
     <div id="orderModal" class="modal">
         <div class="modal-content">
             <span class="close" id="orderModalClose">&times;</span>
-            <h3><i class="fas fa-shopping-cart"></i> Place Order</h3>
-            <input type="text" id="orderBuyerName" placeholder="Your Full Name *" required>
-            <input type="tel" id="orderBuyerPhone" placeholder="Your Phone (WhatsApp) *" required>
-            <input type="text" id="orderAddress" placeholder="Delivery Address *" required>
-            <input type="number" id="orderQuantity" placeholder="Quantity" value="1" min="1">
-            <div id="orderSummary" style="margin: 10px 0; color: #d4af7a;"></div>
-            <button id="placeOrderBtn" class="btn-primary">📲 Place Order via WhatsApp</button>
+            <h3><i class="fas fa-truck"></i> Place Order</h3>
+            <input type="text" id="orderBuyerName" placeholder="Full Name *">
+            <input type="tel" id="orderBuyerPhone" placeholder="Phone (WhatsApp) *">
+            <input type="text" id="orderAddress" placeholder="Delivery Address *">
+            <div id="orderSummary"></div>
+            <button id="placeOrderBtn">📲 Send Order via WhatsApp</button>
         </div>
     </div>
 
