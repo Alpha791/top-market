@@ -1,4 +1,4 @@
-// ==================== FIREBASE CONFIGURATION ====================
+// ==================== FIREBASE CONFIG ====================
 const firebaseConfig = {
     apiKey: "AIzaSyCfSi2_xpsl1GkVN-7HhMx3VJdCyQz6fBE",
     authDomain: "best-market-d2ef0.firebaseapp.com",
@@ -7,444 +7,111 @@ const firebaseConfig = {
     messagingSenderId: "350312625623",
     appId: "1:350312625623:web:a8423cca0f867d43c90792"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-console.log("✅ Firebase initialized");
+console.log("✅ Firebase ready");
 
-// ==================== CLOUDINARY ====================
-const CLOUDINARY_CLOUD_NAME = "dpsj8cuoq";
-const CLOUDINARY_UPLOAD_PRESET = "marketplace";
-
-// ==================== DOM ELEMENTS ====================
-const listingsGrid = document.getElementById('listingsGrid');
-const postBtn = document.getElementById('postItemBtn');
-const itemImages = document.getElementById('itemImages');
-const imagePreview = document.getElementById('imagePreview');
+// ==================== GLOBALS ====================
 let currentUser = null;
+let cart = JSON.parse(localStorage.getItem('thehive_cart')) || [];
 
-// ==================== TOAST NOTIFICATIONS ====================
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    let icon = '';
-    switch (type) {
-        case 'success': icon = 'fa-check-circle'; break;
-        case 'error': icon = 'fa-times-circle'; break;
-        case 'warning': icon = 'fa-exclamation-triangle'; break;
-        default: icon = 'fa-info-circle';
-    }
-    toast.innerHTML = `<i class="fas ${icon}"></i><span class="toast-message">${message}</span><i class="fas fa-times toast-close"></i>`;
-    container.appendChild(toast);
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.onclick = () => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); };
-    setTimeout(() => { if (toast.parentElement) { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); } }, 4000);
+// ==================== TOAST ====================
+function showToast(msg, type='success') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
 }
 
+// ==================== CART FUNCTIONS ====================
+function updateCartUI() {
+    document.getElementById('cartCount').textContent = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+    localStorage.setItem('thehive_cart', JSON.stringify(cart));
+}
+function addToCart(item) {
+    const existing = cart.find(i => i.id === item.id);
+    if (existing) existing.qty = (existing.qty || 1) + 1;
+    else cart.push({ ...item, qty: 1 });
+    updateCartUI();
+    showToast('Added to cart!', 'success');
+}
+function renderCartModal() {
+    const container = document.getElementById('cartItems');
+    const totalSpan = document.getElementById('cartTotal');
+    if (!cart.length) {
+        container.innerHTML = '<p>Your cart is empty.</p>';
+        totalSpan.textContent = '';
+        return;
+    }
+    let html = '';
+    let total = 0;
+    cart.forEach((item, idx) => {
+        const subtotal = item.price * (item.qty || 1);
+        total += subtotal;
+        html += `<div class="cart-item">
+            <span>${item.title} x ${item.qty}</span>
+            <span>KES ${subtotal.toFixed(2)}</span>
+            <button onclick="removeFromCart(${idx})" style="background:none;border:none;color:red;cursor:pointer;">✕</button>
+        </div>`;
+    });
+    container.innerHTML = html;
+    totalSpan.textContent = `Total: KES ${total.toFixed(2)}`;
+}
+window.removeFromCart = function(idx) {
+    cart.splice(idx, 1);
+    updateCartUI();
+    renderCartModal();
+    showToast('Item removed', 'info');
+};
+// Cart modal open/close
+document.getElementById('cartIcon').onclick = () => {
+    renderCartModal();
+    document.getElementById('cartModal').style.display = 'flex';
+};
+document.getElementById('cartModalClose').onclick = () => document.getElementById('cartModal').style.display = 'none';
+
 // ==================== AUTH UI ====================
-function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
 function updateAuthUI(user) {
     currentUser = user;
     const loginBtn = document.getElementById('showLoginBtn');
     const signupBtn = document.getElementById('showSignupBtn');
     const userInfo = document.getElementById('userInfo');
-    const userNameSpan = document.getElementById('userName');
+    const userName = document.getElementById('userName');
     if (user) {
         loginBtn.style.display = 'none';
         signupBtn.style.display = 'none';
-        userInfo.style.display = 'inline-block';
-        userNameSpan.textContent = user.email.split('@')[0];
-        showToast(`Welcome back!`, 'success');
+        userInfo.style.display = 'flex';
+        userName.textContent = user.displayName || user.email.split('@')[0];
     } else {
         loginBtn.style.display = 'inline-block';
         signupBtn.style.display = 'inline-block';
         userInfo.style.display = 'none';
     }
 }
+function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+document.querySelectorAll('.close').forEach(el => el.onclick = closeModals);
+window.onclick = (e) => { if (e.target.classList.contains('modal')) closeModals(); };
 
-// ==================== CLOUDINARY UPLOAD ====================
-async function uploadImagesToCloudinary(files) {
-    if (!files.length) return [];
-    const urls = [];
-    const maxFiles = Math.min(files.length, 3);
-    for (let i = 0; i < maxFiles; i++) {
-        const formData = new FormData();
-        formData.append('file', files[i]);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
-            urls.push(data.secure_url);
-        } catch (err) {
-            showToast(`Image ${i+1} failed: ${err.message}`, 'error');
-            throw err;
-        }
-    }
-    return urls;
-}
-
-// ==================== POST ITEM ====================
-postBtn.addEventListener('click', async () => {
-    const title = document.getElementById('itemTitle').value.trim();
-    const desc = document.getElementById('itemDesc').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value);
-    const sellerName = document.getElementById('sellerName').value.trim();
-    const sellerEmail = document.getElementById('sellerEmail').value.trim();
-    const sellerPhone = document.getElementById('sellerPhone').value.trim();
-    const files = itemImages.files;
-
-    if (!title || !desc || isNaN(price) || !sellerName || !sellerEmail) {
-        showToast('Please fill all required fields', 'warning');
-        return;
-    }
-
-    postBtn.disabled = true;
-    postBtn.textContent = 'Uploading...';
-    const postData = {
-        title, description: desc, price,
-        seller: { name: sellerName, email: sellerEmail, phone: sellerPhone || '' },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        userId: currentUser ? currentUser.uid : 'guest_' + Date.now(),
-        images: []
-    };
-    try {
-        if (files.length) postData.images = await uploadImagesToCloudinary(files);
-        await db.collection('listings').add(postData);
-        showToast('Item posted!', 'success');
-        document.getElementById('itemTitle').value = '';
-        document.getElementById('itemDesc').value = '';
-        document.getElementById('itemPrice').value = '';
-        document.getElementById('sellerName').value = '';
-        document.getElementById('sellerEmail').value = '';
-        document.getElementById('sellerPhone').value = '';
-        itemImages.value = '';
-        imagePreview.innerHTML = '';
-        loadListings();
-    } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-    } finally {
-        postBtn.disabled = false;
-        postBtn.textContent = 'Post Item';
-    }
-});
-
-itemImages.addEventListener('change', () => {
-    const files = Array.from(itemImages.files);
-    imagePreview.innerHTML = '';
-    files.slice(0, 3).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            imagePreview.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-    });
-});
-
-// ==================== LOAD LISTINGS (with Buy & WhatsApp buttons) ====================
-function loadListings() {
-    db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        if (snapshot.empty) { listingsGrid.innerHTML = '<p class="loading">📭 No items yet.</p>'; return; }
-        let html = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const itemId = doc.id;
-            const imagesHtml = data.images?.length ? `<div class="card-images">${data.images.map(img => `<img src="${img}">`).join('')}</div>` : '<div class="card-images"><i class="fas fa-image"></i></div>';
-            const sellerPhone = data.seller?.phone || '';
-            
-            html += `
-            <div class="card" data-id="${itemId}">
-                ${imagesHtml}
-                <div class="card-content">
-                    <div class="card-title">${escapeHtml(data.title)}</div>
-                    <div class="card-price">💰 KES ${data.price}</div>
-                    <div class="card-desc">${escapeHtml(data.description.substring(0, 100))}</div>
-                    <div class="seller-info">
-                        <i class="fas fa-user"></i> ${escapeHtml(data.seller.name)}<br>
-                        <i class="fas fa-envelope"></i> ${escapeHtml(data.seller.email)}<br>
-                        ${sellerPhone ? `<i class="fas fa-phone"></i> ${escapeHtml(sellerPhone)}` : ''}
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn-buy" data-id="${itemId}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller.name)}" data-phone="${escapeHtml(sellerPhone)}">🛒 Buy Now</button>
-                        ${sellerPhone ? `<button class="btn-whatsapp" data-phone="${escapeHtml(sellerPhone)}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller.name)}"><i class="fab fa-whatsapp"></i> Chat</button>` : ''}
-                    </div>
-                </div>
-            </div>`;
-        });
-        listingsGrid.innerHTML = html;
-
-        // ========== ATTACH EVENT LISTENERS FOR BUY & WHATSAPP ==========
-        // Buy Now
-        document.querySelectorAll('.btn-buy').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                const itemId = this.dataset.id;
-                const title = this.dataset.title;
-                const price = this.dataset.price;
-                const sellerName = this.dataset.seller;
-                const sellerPhone = this.dataset.phone;
-                openOrderModal(itemId, title, price, sellerName, sellerPhone);
-            });
-        });
-        // WhatsApp Chat
-        document.querySelectorAll('.btn-whatsapp').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                const phone = this.dataset.phone;
-                const title = this.dataset.title;
-                const price = this.dataset.price;
-                const seller = this.dataset.seller;
-                if (!phone) { showToast('Seller phone number not available.', 'warning'); return; }
-                const message = `Hello ${seller}, I'm interested in buying "${title}" for KES ${price}. Please let me know if it's still available.`;
-                const url = `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(message)}`;
-                window.open(url, '_blank');
-            });
-        });
-    });
-}
-
-// ==================== ORDER MODAL LOGIC ====================
-const orderModal = document.getElementById('orderModal');
-const orderModalClose = document.getElementById('orderModalClose');
-const orderBuyerName = document.getElementById('orderBuyerName');
-const orderBuyerPhone = document.getElementById('orderBuyerPhone');
-const orderAddress = document.getElementById('orderAddress');
-const orderQuantity = document.getElementById('orderQuantity');
-const orderSummary = document.getElementById('orderSummary');
-const placeOrderBtn = document.getElementById('placeOrderBtn');
-
-let currentOrderData = {};
-
-function openOrderModal(itemId, title, price, sellerName, sellerPhone) {
-    if (!currentUser) {
-        showToast('Please login to place an order.', 'warning');
-        showModal('loginModal');
-        return;
-    }
-    // Pre-fill buyer name from current user
-    orderBuyerName.value = currentUser.displayName || currentUser.email.split('@')[0] || '';
-    orderBuyerPhone.value = '';
-    orderAddress.value = '';
-    orderQuantity.value = 1;
-    currentOrderData = { itemId, title, price, sellerName, sellerPhone };
-    updateOrderSummary();
-    orderModal.style.display = 'flex';
-}
-
-function updateOrderSummary() {
-    const qty = parseInt(orderQuantity.value) || 1;
-    const total = (currentOrderData.price || 0) * qty;
-    orderSummary.innerHTML = `
-        <strong>Item:</strong> ${escapeHtml(currentOrderData.title)}<br>
-        <strong>Price:</strong> KES ${currentOrderData.price}<br>
-        <strong>Quantity:</strong> ${qty}<br>
-        <strong>Total:</strong> KES ${total.toFixed(2)}<br>
-        <strong>Seller:</strong> ${escapeHtml(currentOrderData.sellerName)}
-    `;
-}
-
-orderQuantity.addEventListener('input', updateOrderSummary);
-
-placeOrderBtn.addEventListener('click', function() {
-    const name = orderBuyerName.value.trim();
-    const phone = orderBuyerPhone.value.trim();
-    const address = orderAddress.value.trim();
-    const qty = parseInt(orderQuantity.value) || 1;
-    if (!name || !phone || !address) {
-        showToast('Please fill all required fields.', 'warning');
-        return;
-    }
-    const total = (currentOrderData.price || 0) * qty;
-    // Build WhatsApp message
-    const message = `🛒 *New Order from The Hive*\n\n` +
-        `📦 Item: ${currentOrderData.title}\n` +
-        `💰 Price: KES ${currentOrderData.price}\n` +
-        `🔢 Quantity: ${qty}\n` +
-        `💵 Total: KES ${total.toFixed(2)}\n\n` +
-        `👤 Buyer: ${name}\n` +
-        `📞 Phone: ${phone}\n` +
-        `📍 Address: ${address}\n\n` +
-        `Please confirm availability and arrange delivery.`;
-    
-    const sellerPhone = currentOrderData.sellerPhone;
-    if (!sellerPhone) {
-        showToast('Seller phone number is missing. Cannot send order.', 'error');
-        return;
-    }
-    const url = `https://wa.me/${sellerPhone.replace(/\D/g,'')}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-    // Optionally save order to Firestore
-    saveOrderToFirestore(currentOrderData.itemId, name, phone, address, qty, total);
-    orderModal.style.display = 'none';
-    showToast('Order sent to seller via WhatsApp!', 'success');
-});
-
-// Optional: Save order to Firestore for order history
-async function saveOrderToFirestore(itemId, buyerName, buyerPhone, address, qty, total) {
-    try {
-        await db.collection('orders').add({
-            itemId: itemId,
-            buyerName: buyerName,
-            buyerPhone: buyerPhone,
-            address: address,
-            quantity: qty,
-            total: total,
-            buyerUid: currentUser ? currentUser.uid : 'guest',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            itemTitle: currentOrderData.title,
-            sellerName: currentOrderData.sellerName,
-            sellerPhone: currentOrderData.sellerPhone
-        });
-    } catch (err) {
-        console.warn('Order not saved to Firestore:', err);
-    }
-}
-
-orderModalClose.onclick = () => { orderModal.style.display = 'none'; };
-window.onclick = (e) => { if (e.target === orderModal) orderModal.style.display = 'none'; };
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-// ==================== VDO.NINJA LIVE VIDEO ====================
-const frameContainer = document.getElementById('liveFrameContainer');
-const startBtn = document.getElementById('startLiveBtn');
-const joinBtn = document.getElementById('joinLiveBtn');
-const endBtn = document.getElementById('endLiveBtn');
-const fullscreenBtn = document.getElementById('fullscreenBtn');
-const liveStatusSpan = document.getElementById('liveStatus');
-const liveInfoSpan = document.getElementById('liveInfo');
-
-let currentRoomId = null;
-
-function generateRoomId() {
-    return `hive_${Math.random().toString(36).substring(2, 10)}`;
-}
-
-function loadVdoNinja(roomId, isHost) {
-    frameContainer.style.display = 'block';
-    frameContainer.innerHTML = '';
-    const base = 'https://vdo.ninja';
-    const url = isHost ? `${base}/?room=${roomId}&push&label=Seller` : `${base}/?room=${roomId}&view`;
-    const iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.allow = 'camera; microphone; display-capture; autoplay; fullscreen';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = '0';
-    frameContainer.appendChild(iframe);
-    liveInfoSpan.innerText = isHost ? `🔑 Your room ID: ${roomId} (share with buyers)` : `🔑 Watching room: ${roomId}`;
-    liveStatusSpan.innerText = isHost ? "🔴 You are LIVE" : "👀 Watching live stream";
-    startBtn.style.display = 'none';
-    joinBtn.style.display = 'none';
-    endBtn.style.display = 'inline-flex';
-    fullscreenBtn.style.display = 'inline-flex';
-    currentRoomId = roomId;
-}
-
-startBtn.onclick = async () => {
-    if (!currentUser) { showToast('Please login to start', 'warning'); return; }
-    if (currentRoomId) { showToast('Already live', 'warning'); return; }
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        stream.getTracks().forEach(t => t.stop());
-        const roomId = generateRoomId();
-        loadVdoNinja(roomId, true);
-    } catch (err) {
-        showToast('Camera/mic access denied. Please allow permissions.', 'error');
-    }
-};
-
-joinBtn.onclick = () => {
-    if (!currentRoomId) {
-        const manualId = prompt("Enter the seller's room ID (e.g., hive_abc123):");
-        if (manualId && manualId.trim()) {
-            loadVdoNinja(manualId.trim(), false);
-        } else {
-            showToast('No active live stream. Ask the seller for room ID.', 'warning');
-        }
-        return;
-    }
-    loadVdoNinja(currentRoomId, false);
-};
-
-endBtn.onclick = () => {
-    frameContainer.style.display = 'none';
-    frameContainer.innerHTML = '';
-    currentRoomId = null;
-    startBtn.style.display = 'inline-flex';
-    joinBtn.style.display = 'inline-flex';
-    endBtn.style.display = 'none';
-    fullscreenBtn.style.display = 'none';
-    liveInfoSpan.innerText = '';
-    liveStatusSpan.innerText = '⚡ Ready';
-    showToast('Live stream ended', 'info');
-};
-
-// ==================== FULLSCREEN TOGGLE ====================
-function toggleFullscreen() {
-    if (!frameContainer) return;
-    if (!document.fullscreenElement) {
-        if (frameContainer.requestFullscreen) {
-            frameContainer.requestFullscreen();
-        } else if (frameContainer.webkitRequestFullscreen) {
-            frameContainer.webkitRequestFullscreen();
-        } else if (frameContainer.msRequestFullscreen) {
-            frameContainer.msRequestFullscreen();
-        }
-        fullscreenBtn.innerHTML = '🗗 Exit';
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-        fullscreenBtn.innerHTML = '⛶ Fullscreen';
-    }
-}
-
-fullscreenBtn.addEventListener('click', toggleFullscreen);
-
-document.addEventListener('fullscreenchange', () => {
-    fullscreenBtn.innerHTML = document.fullscreenElement ? '🗗 Exit' : '⛶ Fullscreen';
-});
-document.addEventListener('webkitfullscreenchange', () => {
-    fullscreenBtn.innerHTML = document.webkitFullscreenElement ? '🗗 Exit' : '⛶ Fullscreen';
-});
-
-// ==================== AUTH EVENT HANDLERS ====================
+// ==================== AUTH HANDLERS ====================
 document.getElementById('showLoginBtn').onclick = () => showModal('loginModal');
 document.getElementById('showSignupBtn').onclick = () => showModal('signupModal');
-document.querySelectorAll('.close').forEach(btn => btn.onclick = closeModals);
-
 document.getElementById('doLoginBtn').onclick = async () => {
     const email = document.getElementById('loginEmail').value;
     const pwd = document.getElementById('loginPassword').value;
     try {
         await auth.signInWithEmailAndPassword(email, pwd);
         closeModals();
-        showToast('Login successful', 'success');
+        showToast('Logged in!', 'success');
     } catch (err) { showToast(err.message, 'error'); }
 };
-
 document.getElementById('doSignupBtn').onclick = async () => {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const pwd = document.getElementById('signupPassword').value;
-    if (!name || !email || !pwd) { showToast('Please fill all fields', 'warning'); return; }
     try {
         const cred = await auth.createUserWithEmailAndPassword(email, pwd);
         await cred.user.updateProfile({ displayName: name });
@@ -452,34 +119,262 @@ document.getElementById('doSignupBtn').onclick = async () => {
         showToast('Account created!', 'success');
     } catch (err) { showToast(err.message, 'error'); }
 };
-
 document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
-auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
-loadListings();
-
-// ==================== INTERACTIVE LIGHT ORB ====================
-(function initLightOrb() {
-    let ticking = false;
-    function updatePosition(xPercent, yPercent) {
-        document.body.style.setProperty('--x', `${xPercent}%`);
-        document.body.style.setProperty('--y', `${yPercent}%`);
+// ==================== CLOUDINARY ====================
+const CLOUD_NAME = "dpsj8cuoq";
+const UPLOAD_PRESET = "marketplace";
+async function uploadImages(files) {
+    if (!files.length) return [];
+    const urls = [];
+    for (let i=0; i<Math.min(files.length,3); i++) {
+        const fd = new FormData();
+        fd.append('file', files[i]);
+        fd.append('upload_preset', UPLOAD_PRESET);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        urls.push(data.secure_url);
     }
-    function handleMove(clientX, clientY) {
-        if (!ticking) {
-            requestAnimationFrame(() => {
-                const x = (clientX / window.innerWidth) * 100;
-                const y = (clientY / window.innerHeight) * 100;
-                updatePosition(x, y);
-                ticking = false;
-            });
-            ticking = true;
-        }
-    }
-    document.body.addEventListener('mousemove', (e) => { handleMove(e.clientX, e.clientY); });
-    document.body.addEventListener('touchmove', (e) => {
-        if (e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    return urls;
+}
+// File input preview
+document.getElementById('itemImages').onchange = function(e) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    Array.from(this.files).slice(0,3).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
     });
-    window.addEventListener('resize', () => updatePosition(50, 50));
-    updatePosition(50, 50);
-})();
+};
+// Post item
+document.getElementById('postItemBtn').onclick = async function() {
+    const title = document.getElementById('itemTitle').value.trim();
+    const desc = document.getElementById('itemDesc').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value);
+    const sellerName = document.getElementById('sellerName').value.trim();
+    const sellerEmail = document.getElementById('sellerEmail').value.trim();
+    const sellerPhone = document.getElementById('sellerPhone').value.trim();
+    const files = document.getElementById('itemImages').files;
+    if (!title || !desc || isNaN(price) || !sellerName || !sellerEmail) {
+        showToast('Please fill all required fields', 'warning');
+        return;
+    }
+    this.disabled = true;
+    this.textContent = 'Uploading...';
+    try {
+        const images = await uploadImages(files);
+        await db.collection('listings').add({
+            title, description: desc, price,
+            seller: { name: sellerName, email: sellerEmail, phone: sellerPhone || '' },
+            userId: currentUser ? currentUser.uid : 'guest_' + Date.now(),
+            images,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('Item posted!', 'success');
+        // Clear form
+        document.getElementById('itemTitle').value = '';
+        document.getElementById('itemDesc').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('sellerName').value = '';
+        document.getElementById('sellerEmail').value = '';
+        document.getElementById('sellerPhone').value = '';
+        document.getElementById('itemImages').value = '';
+        document.getElementById('imagePreview').innerHTML = '';
+        loadListings();
+    } catch(err) { showToast(err.message, 'error'); }
+    this.disabled = false;
+    this.textContent = 'Post Item';
+};
+
+// ==================== LISTINGS ====================
+function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+function loadListings() {
+    db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        if (snapshot.empty) { document.getElementById('listingsGrid').innerHTML = '<p>No items yet.</p>'; return; }
+        let html = '';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const id = doc.id;
+            const imagesHtml = data.images && data.images.length ? 
+                `<div class="card-images">${data.images.map(img => `<img src="${img}" alt="">`).join('')}</div>` :
+                `<div class="card-images"><i class="fas fa-image"></i></div>`;
+            const sellerPhone = data.seller?.phone || '';
+            html += `
+            <div class="card" data-id="${id}">
+                ${imagesHtml}
+                <div class="card-content">
+                    <div class="card-title">${escapeHtml(data.title)}</div>
+                    <div class="card-price">KES ${data.price}</div>
+                    <div class="card-desc">${escapeHtml(data.description.substring(0,80))}</div>
+                    <div class="seller-info">
+                        <i class="fas fa-user"></i> ${escapeHtml(data.seller?.name)}<br>
+                        <i class="fas fa-envelope"></i> ${escapeHtml(data.seller?.email)}<br>
+                        ${sellerPhone ? `<i class="fas fa-phone"></i> ${escapeHtml(sellerPhone)}` : ''}
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-add-cart" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-cart-plus"></i> Add</button>
+                        <button class="btn-buy" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-bolt"></i> Buy</button>
+                        ${sellerPhone ? `<button class="btn-whatsapp" data-phone="${escapeHtml(sellerPhone)}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}"><i class="fab fa-whatsapp"></i> Chat</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        });
+        document.getElementById('listingsGrid').innerHTML = html;
+        // Attach events
+        document.querySelectorAll('.btn-add-cart').forEach(b => b.onclick = function() {
+            addToCart({ id: this.dataset.id, title: this.dataset.title, price: parseFloat(this.dataset.price) });
+        });
+        document.querySelectorAll('.btn-buy').forEach(b => b.onclick = function() {
+            openOrderModal(this.dataset.id, this.dataset.title, this.dataset.price, this.dataset.seller, this.dataset.phone);
+        });
+        document.querySelectorAll('.btn-whatsapp').forEach(b => b.onclick = function() {
+            const phone = this.dataset.phone;
+            if (!phone) { showToast('No phone number', 'warning'); return; }
+            const msg = `Hello ${this.dataset.seller}, I'm interested in "${this.dataset.title}" for KES ${this.dataset.price}.`;
+            window.open(`https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+        });
+    });
+}
+
+// ==================== ORDER MODAL ====================
+let currentOrder = {};
+function openOrderModal(id, title, price, seller, phone) {
+    if (!currentUser) { showToast('Please login to order', 'warning'); showModal('loginModal'); return; }
+    document.getElementById('orderBuyerName').value = currentUser.displayName || '';
+    document.getElementById('orderBuyerPhone').value = '';
+    document.getElementById('orderAddress').value = '';
+    currentOrder = { id, title, price, seller, phone };
+    document.getElementById('orderSummary').innerHTML = `
+        <strong>Item:</strong> ${title}<br>
+        <strong>Price:</strong> KES ${price}<br>
+        <strong>Seller:</strong> ${seller}
+    `;
+    document.getElementById('orderModal').style.display = 'flex';
+}
+document.getElementById('orderModalClose').onclick = () => document.getElementById('orderModal').style.display = 'none';
+document.getElementById('placeOrderBtn').onclick = function() {
+    const name = document.getElementById('orderBuyerName').value.trim();
+    const phone = document.getElementById('orderBuyerPhone').value.trim();
+    const address = document.getElementById('orderAddress').value.trim();
+    if (!name || !phone || !address) { showToast('Fill all fields', 'warning'); return; }
+    const msg = `🛒 *New Order from The Hive*%0A%0A📦 Item: ${currentOrder.title}%0A💰 Price: KES ${currentOrder.price}%0A👤 Buyer: ${name}%0A📞 Phone: ${phone}%0A📍 Address: ${address}%0A%0APlease confirm.`;
+    const sellerPhone = currentOrder.phone;
+    if (!sellerPhone) { showToast('Seller phone missing', 'error'); return; }
+    window.open(`https://wa.me/${sellerPhone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+    // Save order to Firestore (optional)
+    db.collection('orders').add({
+        itemId: currentOrder.id,
+        itemTitle: currentOrder.title,
+        buyerName: name,
+        buyerPhone: phone,
+        address: address,
+        sellerName: currentOrder.seller,
+        sellerPhone: sellerPhone,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(()=>{});
+    document.getElementById('orderModal').style.display = 'none';
+    showToast('Order sent!', 'success');
+};
+
+// ==================== LIVE VIDEO (VDO.NINJA) ====================
+const frame = document.getElementById('liveFrameContainer');
+const startBtn = document.getElementById('startLiveBtn');
+const joinBtn = document.getElementById('joinLiveBtn');
+const endBtn = document.getElementById('endLiveBtn');
+const fullBtn = document.getElementById('fullscreenBtn');
+const liveStatus = document.getElementById('liveStatus');
+const liveInfo = document.getElementById('liveInfo');
+let roomId = null;
+function loadVdo(rid, isHost) {
+    frame.style.display = 'block';
+    frame.innerHTML = `<iframe src="https://vdo.ninja/?room=${rid}${isHost ? '&push&label=Seller' : '&view'}" allow="camera;microphone;display-capture;autoplay;fullscreen" style="width:100%;height:100%;border:0;"></iframe>`;
+    liveInfo.innerText = isHost ? `🔑 Room: ${rid} (share with buyers)` : `👀 Watching ${rid}`;
+    liveStatus.innerText = isHost ? '🔴 You are LIVE' : '👀 Watching';
+    startBtn.style.display = 'none';
+    joinBtn.style.display = 'none';
+    endBtn.style.display = 'inline-block';
+    fullBtn.style.display = 'inline-block';
+    roomId = rid;
+}
+startBtn.onclick = async function() {
+    if (!currentUser) { showToast('Please login to start', 'warning'); return; }
+    try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const rid = `hive_${Math.random().toString(36).substring(2,10)}`;
+        loadVdo(rid, true);
+    } catch(e) { showToast('Camera access denied', 'error'); }
+};
+joinBtn.onclick = function() {
+    if (roomId) { loadVdo(roomId, false); return; }
+    const rid = prompt('Enter room ID:');
+    if (rid) loadVdo(rid.trim(), false);
+    else showToast('No room ID', 'warning');
+};
+endBtn.onclick = function() {
+    frame.style.display = 'none';
+    frame.innerHTML = '';
+    roomId = null;
+    startBtn.style.display = 'inline-block';
+    joinBtn.style.display = 'inline-block';
+    endBtn.style.display = 'none';
+    fullBtn.style.display = 'none';
+    liveStatus.innerText = '⚡ Ready';
+    liveInfo.innerText = '';
+    showToast('Stream ended', 'info');
+};
+fullBtn.onclick = function() {
+    if (!frame) return;
+    if (frame.requestFullscreen) frame.requestFullscreen();
+    else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
+};
+
+// ==================== CHECKOUT FROM CART ====================
+document.getElementById('checkoutBtn').onclick = function() {
+    if (!cart.length) { showToast('Cart is empty', 'warning'); return; }
+    if (!currentUser) { showToast('Please login to checkout', 'warning'); showModal('loginModal'); return; }
+    let msg = '🛒 *Order Summary from The Hive*%0A%0A';
+    let total = 0;
+    cart.forEach(item => {
+        const subtotal = item.price * (item.qty || 1);
+        total += subtotal;
+        msg += `📦 ${item.title} x ${item.qty} = KES ${subtotal.toFixed(2)}%0A`;
+    });
+    msg += `%0A💵 Total: KES ${total.toFixed(2)}%0A%0A`;
+    const name = prompt('Your full name:') || 'Customer';
+    const phone = prompt('Your phone (WhatsApp):') || '';
+    const address = prompt('Delivery address:') || '';
+    msg += `👤 ${name}%0A📞 ${phone}%0A📍 ${address}`;
+    // Send to first seller's phone (simplified)
+    if (cart.length && cart[0].sellerPhone) {
+        const sellerPhone = cart[0].sellerPhone.replace(/\D/g,'');
+        window.open(`https://wa.me/${sellerPhone}?text=${msg}`, '_blank');
+        db.collection('orders').add({
+            items: cart,
+            buyerName: name,
+            buyerPhone: phone,
+            address: address,
+            total: total,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(()=>{});
+        cart = [];
+        updateCartUI();
+        document.getElementById('cartModal').style.display = 'none';
+        showToast('Order placed!', 'success');
+    } else {
+        showToast('Seller phone missing', 'error');
+    }
+};
+
+// ==================== AUTH STATE ====================
+auth.onAuthStateChanged(user => {
+    updateAuthUI(user);
+    loadListings();
+});
+loadListings();
+updateCartUI();
