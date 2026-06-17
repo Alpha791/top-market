@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>The Hive 🐝</title>
+    <title>The Hive 🐝 </title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Cloudinary Widget -->
+    <!-- Cloudinary -->
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- External CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
     <div id="toastContainer" class="toast-container"></div>
@@ -24,6 +24,7 @@
             <button id="showSignupBtn">Sign Up</button>
             <div id="userInfo">
                 <span id="userName"></span>
+                <span id="userRole" class="role-badge"></span>
                 <button id="logoutBtn">Logout</button>
             </div>
             <div class="cart-icon" id="cartIcon">
@@ -32,7 +33,6 @@
             </div>
         </div>
     </header>
-
     <div class="container">
         <!-- Live Section -->
         <section class="live-section">
@@ -51,7 +51,7 @@
         </section>
 
         <!-- Sell Form -->
-        <section class="post-form">
+        <section class="post-form" id="postForm">
             <h2><i class="fas fa-plus-circle"></i> Sell an Item</h2>
             <div class="form-card">
                 <input type="text" id="itemTitle" placeholder="Title *">
@@ -91,6 +91,10 @@
             <input type="text" id="signupName" placeholder="Full Name">
             <input type="email" id="signupEmail" placeholder="Email">
             <input type="password" id="signupPassword" placeholder="Password">
+            <div class="role-select">
+                <label><input type="radio" name="role" value="Buyer" checked> Buyer</label>
+                <label><input type="radio" name="role" value="Seller"> Seller</label>
+            </div>
             <button id="doSignupBtn">Sign Up</button>
         </div>
     </div>
@@ -119,6 +123,6 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="../js/app.js"></script>
 </body>
 </html>
