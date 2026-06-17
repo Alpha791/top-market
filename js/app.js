@@ -1,4 +1,4 @@
-// ==================== FIREBASE CONFIG ====================
+// ==================== FIREBASE ====================
 const firebaseConfig = {
     apiKey: "AIzaSyCfSi2_xpsl1GkVN-7HhMx3VJdCyQz6fBE",
     authDomain: "best-market-d2ef0.firebaseapp.com",
@@ -14,6 +14,7 @@ console.log("✅ Firebase ready");
 
 // ==================== GLOBALS ====================
 let currentUser = null;
+let currentUserRole = '';
 let cart = JSON.parse(localStorage.getItem('thehive_cart')) || [];
 
 // ==================== TOAST ====================
@@ -82,15 +83,32 @@ function updateAuthUI(user) {
     const signupBtn = document.getElementById('showSignupBtn');
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
+    const userRole = document.getElementById('userRole');
+    const postForm = document.getElementById('postForm');
+
     if (user) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (signupBtn) signupBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'flex';
         if (userName) userName.textContent = user.displayName || user.email.split('@')[0];
+        // Fetch role from Firestore
+        db.collection('users').doc(user.uid).get().then(doc => {
+            if (doc.exists) {
+                const role = doc.data().role || 'Buyer';
+                currentUserRole = role;
+                if (userRole) userRole.textContent = role;
+                // Show/hide sell form based on role
+                if (postForm) {
+                    postForm.style.display = (role === 'Seller') ? 'block' : 'none';
+                }
+            }
+        }).catch(() => {});
     } else {
         if (loginBtn) loginBtn.style.display = 'inline-block';
         if (signupBtn) signupBtn.style.display = 'inline-block';
         if (userInfo) userInfo.style.display = 'none';
+        if (postForm) postForm.style.display = 'block'; // visible for guests (can still post)
+        currentUserRole = '';
     }
 }
 
@@ -102,26 +120,17 @@ function closeModals() {
     document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
 }
 
-// ==================== SAFE EVENT ATTACHMENT ====================
-function safeAddEventListener(id, event, handler) {
-    const el = document.getElementById(id);
-    if (el) {
-        el.addEventListener(event, handler);
-    } else {
-        console.warn(`Element with id "${id}" not found – skipping event listener.`);
-    }
-}
-
+// ==================== SAFE EVENT BINDING ====================
 function safeOnClick(id, handler) {
     const el = document.getElementById(id);
     if (el) {
         el.onclick = handler;
     } else {
-        console.warn(`Element with id "${id}" not found – skipping onclick.`);
+        console.warn(`Element #${id} not found`);
     }
 }
 
-// ==================== INIT ====================
+// ==================== INIT (DOM ready) ====================
 document.addEventListener('DOMContentLoaded', function() {
     // --- Auth buttons ---
     safeOnClick('showLoginBtn', () => showModal('loginModal'));
@@ -138,15 +147,25 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Logged in!', 'success');
         } catch (err) { showToast(err.message, 'error'); }
     });
+
     safeOnClick('doSignupBtn', async () => {
         const name = document.getElementById('signupName').value;
         const email = document.getElementById('signupEmail').value;
         const pwd = document.getElementById('signupPassword').value;
+        const roleRadios = document.querySelectorAll('input[name="role"]');
+        let role = 'Buyer';
+        roleRadios.forEach(r => { if (r.checked) role = r.value; });
+        if (!name || !email || !pwd) {
+            showToast('Please fill all fields', 'warning');
+            return;
+        }
         try {
             const cred = await auth.createUserWithEmailAndPassword(email, pwd);
             await cred.user.updateProfile({ displayName: name });
+            // Save role to Firestore
+            await db.collection('users').doc(cred.user.uid).set({ role, name, email });
             closeModals();
-            showToast('Account created!', 'success');
+            showToast('Account created! You are a ' + role, 'success');
         } catch (err) { showToast(err.message, 'error'); }
     });
 
@@ -215,8 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = false;
             this.textContent = 'Post Item';
         };
-    } else {
-        console.warn('postItemBtn not found');
     }
 
     // --- Image preview ---
@@ -236,8 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.readAsDataURL(file);
             });
         });
-    } else {
-        console.warn('itemImages input not found');
     }
 
     // --- Live video ---
@@ -266,6 +281,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (startBtn) {
         startBtn.onclick = async function() {
             if (!currentUser) { showToast('Please login to start', 'warning'); return; }
+            if (currentUserRole !== 'Seller') {
+                showToast('Only sellers can start a live stream.', 'warning');
+                return;
+            }
             try {
                 await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 const rid = `hive_${Math.random().toString(36).substring(2, 10)}`;
