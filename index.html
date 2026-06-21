@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>The Hive 🐝 </title>
+    <title>The Hive 🐝</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Cloudinary -->
-    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ===== ALL CSS HERE ===== */
+        /* ===== ALL CSS HERE (same as before, no changes needed) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background: linear-gradient(145deg, #0f0c29, #302b63, #24243e); color: #e0e0e0; min-height: 100vh; }
         header { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -124,7 +122,7 @@
             </div>
         </section>
 
-        <!-- Sell Form (hidden for buyers) -->
+        <!-- Sell Form -->
         <section class="post-form" id="postForm">
             <h2><i class="fas fa-plus-circle"></i> Sell an Item</h2>
             <div class="form-card">
@@ -134,9 +132,15 @@
                 <input type="text" id="sellerName" placeholder="Your Name *">
                 <input type="email" id="sellerEmail" placeholder="Your Email *">
                 <input type="tel" id="sellerPhone" placeholder="Phone (WhatsApp) *">
-                <label class="file-label"><i class="fas fa-cloud-upload-alt"></i> Up to 3 images</label>
+                
+                <!-- Cloudinary Upload Section -->
+                <label class="file-label" id="cloudinaryLabel">
+                    <i class="fas fa-cloud-upload-alt"></i> Click to upload up to 3 images
+                </label>
                 <input type="file" id="itemImages" accept="image/*" multiple style="display:none;">
                 <div id="imagePreview" class="image-preview"></div>
+                <div id="uploadProgress" style="display:none; color: #ffaa66; margin: 10px 0;">Uploading images...</div>
+                
                 <button id="postItemBtn" class="btn-primary" style="width:100%; padding:12px;">Post Item</button>
             </div>
         </section>
@@ -198,8 +202,7 @@
     </div>
 
     <script>
-        // ==================== ALL JAVASCRIPT HERE ====================
-        // (Paste the entire app.js content here – I'll provide it below)
+        // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCfSi2_xpsl1GkVN-7HhMx3VJdCyQz6fBE",
             authDomain: "best-market-d2ef0.firebaseapp.com",
@@ -213,10 +216,16 @@
         const db = firebase.firestore();
         console.log("✅ Firebase ready");
 
+        // ==================== CLOUDINARY CONFIG ====================
+        const CLOUD_NAME = "dpsj8cuoq";
+        const UPLOAD_PRESET = "marketplace";
+
+        // ==================== GLOBALS ====================
         let currentUser = null;
         let currentUserRole = '';
         let cart = JSON.parse(localStorage.getItem('thehive_cart')) || [];
 
+        // ==================== TOAST ====================
         function showToast(msg, type = 'success') {
             const container = document.getElementById('toastContainer');
             if (!container) return;
@@ -227,6 +236,7 @@
             setTimeout(() => t.remove(), 3500);
         }
 
+        // ==================== CART ====================
         function updateCartUI() {
             const countEl = document.getElementById('cartCount');
             if (countEl) countEl.textContent = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
@@ -267,6 +277,7 @@
             showToast('Item removed', 'info');
         };
 
+        // ==================== AUTH UI ====================
         function updateAuthUI(user) {
             currentUser = user;
             const loginBtn = document.getElementById('showLoginBtn');
@@ -306,7 +317,96 @@
             else console.warn(`Element #${id} not found`);
         }
 
+        // ==================== CLOUDINARY UPLOAD FUNCTION ====================
+        async function uploadImages(files) {
+            if (!files || files.length === 0) return [];
+            
+            const progressEl = document.getElementById('uploadProgress');
+            if (progressEl) progressEl.style.display = 'block';
+            
+            const urls = [];
+            const maxFiles = Math.min(files.length, 3);
+            
+            for (let i = 0; i < maxFiles; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', UPLOAD_PRESET);
+                
+                try {
+                    if (progressEl) progressEl.textContent = `Uploading image ${i+1}/${maxFiles}...`;
+                    
+                    const response = await fetch(
+                        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+                        { method: 'POST', body: formData }
+                    );
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || 'Upload failed');
+                    }
+                    
+                    const data = await response.json();
+                    urls.push(data.secure_url);
+                    console.log(`✅ Uploaded image ${i+1}: ${data.secure_url}`);
+                    
+                } catch (err) {
+                    console.error('Cloudinary upload error:', err);
+                    showToast(`Image ${i+1} failed: ${err.message}`, 'error');
+                    throw err;
+                }
+            }
+            
+            if (progressEl) {
+                progressEl.style.display = 'none';
+                progressEl.textContent = 'Uploading images...';
+            }
+            
+            return urls;
+        }
+
+        // ==================== FILE INPUT HANDLER ====================
         document.addEventListener('DOMContentLoaded', function() {
+            // File input click handler via label
+            const fileLabel = document.getElementById('cloudinaryLabel');
+            const fileInput = document.getElementById('itemImages');
+            if (fileLabel && fileInput) {
+                fileLabel.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    fileInput.click();
+                });
+            }
+
+            // Image preview
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    if (!preview) return;
+                    preview.innerHTML = '';
+                    const files = Array.from(this.files);
+                    if (files.length === 0) {
+                        preview.innerHTML = '<p style="color:#aaa; font-size:0.8rem;">No images selected</p>';
+                        return;
+                    }
+                    files.slice(0, 3).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                            const img = document.createElement('img');
+                            img.src = ev.target.result;
+                            preview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    if (files.length > 3) {
+                        const note = document.createElement('p');
+                        note.style.cssText = 'color:#aaa; font-size:0.8rem; width:100%;';
+                        note.textContent = `+ ${files.length - 3} more image(s) (max 3 will be uploaded)`;
+                        preview.appendChild(note);
+                    }
+                });
+            }
+
+            // Auth buttons
             safeOnClick('showLoginBtn', () => showModal('loginModal'));
             safeOnClick('showSignupBtn', () => showModal('signupModal'));
             safeOnClick('logoutBtn', () => auth.signOut());
@@ -358,6 +458,7 @@
                 if (modal) modal.style.display = 'none';
             });
 
+            // ==================== POST ITEM (with Cloudinary upload) ====================
             const postBtn = document.getElementById('postItemBtn');
             if (postBtn) {
                 postBtn.onclick = async function() {
@@ -368,22 +469,38 @@
                     const sellerEmail = document.getElementById('sellerEmail').value.trim();
                     const sellerPhone = document.getElementById('sellerPhone').value.trim();
                     const files = document.getElementById('itemImages').files;
+                    
                     if (!title || !desc || isNaN(price) || !sellerName || !sellerEmail) {
                         showToast('Please fill all required fields', 'warning');
                         return;
                     }
+                    
                     this.disabled = true;
                     this.textContent = 'Uploading...';
+                    
                     try {
-                        const images = await uploadImages(files);
+                        let images = [];
+                        if (files && files.length > 0) {
+                            images = await uploadImages(files);
+                        }
+                        
                         await db.collection('listings').add({
-                            title, description: desc, price,
-                            seller: { name: sellerName, email: sellerEmail, phone: sellerPhone || '' },
+                            title, 
+                            description: desc, 
+                            price,
+                            seller: { 
+                                name: sellerName, 
+                                email: sellerEmail, 
+                                phone: sellerPhone || '' 
+                            },
                             userId: currentUser ? currentUser.uid : 'guest_' + Date.now(),
-                            images,
+                            images: images,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
-                        showToast('Item posted!', 'success');
+                        
+                        showToast('Item posted successfully!', 'success');
+                        
+                        // Clear form
                         document.getElementById('itemTitle').value = '';
                         document.getElementById('itemDesc').value = '';
                         document.getElementById('itemPrice').value = '';
@@ -392,29 +509,17 @@
                         document.getElementById('sellerPhone').value = '';
                         document.getElementById('itemImages').value = '';
                         document.getElementById('imagePreview').innerHTML = '';
+                        document.getElementById('imagePreview').innerHTML = '<p style="color:#aaa; font-size:0.8rem;">No images selected</p>';
+                        
                         loadListings();
-                    } catch (err) { showToast(err.message, 'error'); }
+                    } catch (err) {
+                        console.error('Post error:', err);
+                        showToast('Error: ' + err.message, 'error');
+                    }
+                    
                     this.disabled = false;
                     this.textContent = 'Post Item';
                 };
-            }
-
-            const fileInput = document.getElementById('itemImages');
-            if (fileInput) {
-                fileInput.addEventListener('change', function(e) {
-                    const preview = document.getElementById('imagePreview');
-                    if (!preview) return;
-                    preview.innerHTML = '';
-                    Array.from(this.files).slice(0, 3).forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = ev => {
-                            const img = document.createElement('img');
-                            img.src = ev.target.result;
-                            preview.appendChild(img);
-                        };
-                        reader.readAsDataURL(file);
-                    });
-                });
             }
 
             // Live video
@@ -555,23 +660,7 @@
             updateCartUI();
         });
 
-        const CLOUD_NAME = "dpsj8cuoq";
-        const UPLOAD_PRESET = "marketplace";
-        async function uploadImages(files) {
-            if (!files.length) return [];
-            const urls = [];
-            for (let i = 0; i < Math.min(files.length, 3); i++) {
-                const fd = new FormData();
-                fd.append('file', files[i]);
-                fd.append('upload_preset', UPLOAD_PRESET);
-                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
-                if (!res.ok) throw new Error('Upload failed');
-                const data = await res.json();
-                urls.push(data.secure_url);
-            }
-            return urls;
-        }
-
+        // ==================== LISTINGS ====================
         function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
 
         function loadListings() {
@@ -629,6 +718,7 @@
             });
         }
 
+        // ==================== ORDER MODAL ====================
         let currentOrder = {};
         function openOrderModal(id, title, price, seller, phone) {
             if (!currentUser) { showToast('Please login to order', 'warning'); showModal('loginModal'); return; }
@@ -640,6 +730,7 @@
             document.getElementById('orderModal').style.display = 'flex';
         }
 
+        // ==================== AUTH STATE ====================
         auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
     </script>
 </body>
