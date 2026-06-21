@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ===== ALL CSS HERE (same as before, no changes needed) ===== */
+        /* ===== ALL CSS (unchanged, plus .btn-edit) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background: linear-gradient(145deg, #0f0c29, #302b63, #24243e); color: #e0e0e0; min-height: 100vh; }
         header { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -85,6 +85,30 @@
         .toast-warning { border-color: #f39c12; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @media (max-width: 700px) { .listings-grid { grid-template-columns: repeat(2,1fr); } .live-frame-container { height: 220px; } .toast-container { top: auto; bottom: 20px; right: 10px; left: 10px; max-width: none; } .card-actions { flex-direction: column; } .btn-whatsapp, .btn-buy, .btn-add-cart { width: 100%; } }
+
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            flex: 1;
+            transition: transform 0.2s;
+        }
+        .btn-edit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+        }
+        #editCurrentImagesContainer img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 </head>
 <body>
@@ -135,7 +159,7 @@
                 
                 <!-- Cloudinary Upload Section -->
                 <label class="file-label" id="cloudinaryLabel">
-                    <i class="fas fa-cloud-upload-alt"></i> Click to upload up to 3 images
+                    <i class="fas fa-cloud-upload-alt"></i> Click to upload image
                 </label>
                 <input type="file" id="itemImages" accept="image/*" multiple style="display:none;">
                 <div id="imagePreview" class="image-preview"></div>
@@ -198,6 +222,29 @@
             <input type="text" id="orderAddress" placeholder="Delivery Address *">
             <div id="orderSummary"></div>
             <button id="placeOrderBtn">📲 Send Order via WhatsApp</button>
+        </div>
+    </div>
+
+    <!-- ========== EDIT MODAL (with image replacement) ========== -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="editModalClose">&times;</span>
+            <h3><i class="fas fa-edit"></i> Edit Item</h3>
+            <input type="text" id="editTitle" placeholder="Title *">
+            <textarea id="editDesc" placeholder="Description *" rows="3"></textarea>
+            <input type="number" id="editPrice" placeholder="Price (KES) *">
+            <div id="editCurrentImages" style="margin:10px 0;">
+                <p style="color:#aaa;">Current images:</p>
+                <div id="editCurrentImagesContainer" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+            </div>
+            <!-- Image replacement section -->
+            <label class="file-label" id="editCloudinaryLabel">
+                <i class="fas fa-cloud-upload-alt"></i> Replace with new images
+            </label>
+            <input type="file" id="editImages" accept="image/*" multiple style="display:none;">
+            <div id="editImagePreview" class="image-preview"></div>
+            <div id="editUploadProgress" style="display:none; color: #ffaa66; margin: 10px 0;">Uploading new image...</div>
+            <button id="saveEditBtn" class="btn-primary" style="width:100%; padding:12px;">💾 Save Changes</button>
         </div>
     </div>
 
@@ -317,11 +364,11 @@
             else console.warn(`Element #${id} not found`);
         }
 
-        // ==================== CLOUDINARY UPLOAD FUNCTION ====================
-        async function uploadImages(files) {
+        // ==================== CLOUDINARY UPLOAD FUNCTION (for posting and editing) ====================
+        async function uploadImages(files, progressElementId) {
             if (!files || files.length === 0) return [];
             
-            const progressEl = document.getElementById('uploadProgress');
+            const progressEl = document.getElementById(progressElementId);
             if (progressEl) progressEl.style.display = 'block';
             
             const urls = [];
@@ -367,7 +414,7 @@
 
         // ==================== FILE INPUT HANDLER ====================
         document.addEventListener('DOMContentLoaded', function() {
-            // File input click handler via label
+            // --- Post form: file input click handler via label ---
             const fileLabel = document.getElementById('cloudinaryLabel');
             const fileInput = document.getElementById('itemImages');
             if (fileLabel && fileInput) {
@@ -377,7 +424,7 @@
                 });
             }
 
-            // Image preview
+            // --- Post form: image preview ---
             if (fileInput) {
                 fileInput.addEventListener('change', function(e) {
                     const preview = document.getElementById('imagePreview');
@@ -406,7 +453,40 @@
                 });
             }
 
-            // Auth buttons
+            // --- Edit form: file input click handler via label ---
+            const editFileLabel = document.getElementById('editCloudinaryLabel');
+            const editFileInput = document.getElementById('editImages');
+            if (editFileLabel && editFileInput) {
+                editFileLabel.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    editFileInput.click();
+                });
+            }
+
+            // --- Edit form: image preview for new images ---
+            if (editFileInput) {
+                editFileInput.addEventListener('change', function(e) {
+                    const preview = document.getElementById('editImagePreview');
+                    if (!preview) return;
+                    preview.innerHTML = '';
+                    const files = Array.from(this.files);
+                    if (files.length === 0) {
+                        preview.innerHTML = '<p style="color:#aaa; font-size:0.8rem;">No new images selected</p>';
+                        return;
+                    }
+                    files.slice(0, 3).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                            const img = document.createElement('img');
+                            img.src = ev.target.result;
+                            preview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+            }
+
+            // --- Auth buttons ---
             safeOnClick('showLoginBtn', () => showModal('loginModal'));
             safeOnClick('showSignupBtn', () => showModal('signupModal'));
             safeOnClick('logoutBtn', () => auth.signOut());
@@ -481,7 +561,7 @@
                     try {
                         let images = [];
                         if (files && files.length > 0) {
-                            images = await uploadImages(files);
+                            images = await uploadImages(files, 'uploadProgress');
                         }
                         
                         await db.collection('listings').add({
@@ -508,7 +588,6 @@
                         document.getElementById('sellerEmail').value = '';
                         document.getElementById('sellerPhone').value = '';
                         document.getElementById('itemImages').value = '';
-                        document.getElementById('imagePreview').innerHTML = '';
                         document.getElementById('imagePreview').innerHTML = '<p style="color:#aaa; font-size:0.8rem;">No images selected</p>';
                         
                         loadListings();
@@ -522,7 +601,7 @@
                 };
             }
 
-            // Live video
+            // ==================== LIVE VIDEO (unchanged) ====================
             const startBtn = document.getElementById('startLiveBtn');
             const joinBtn = document.getElementById('joinLiveBtn');
             const endBtn = document.getElementById('endLiveBtn');
@@ -588,7 +667,7 @@
                 };
             }
 
-            // Checkout
+            // ==================== CHECKOUT (unchanged) ====================
             const checkoutBtn = document.getElementById('checkoutBtn');
             if (checkoutBtn) {
                 checkoutBtn.onclick = function() {
@@ -628,7 +707,7 @@
                 };
             }
 
-            // Place order
+            // ==================== PLACE ORDER (unchanged) ====================
             const placeOrderBtn = document.getElementById('placeOrderBtn');
             if (placeOrderBtn) {
                 placeOrderBtn.onclick = function() {
@@ -656,6 +735,82 @@
                 };
             }
 
+            // ==================== EDIT FEATURE (with image replacement) ====================
+            // Edit modal close
+            document.getElementById('editModalClose').onclick = function() {
+                document.getElementById('editModal').style.display = 'none';
+            };
+
+            // Save edit (update title, description, price, and optionally replace images)
+            const saveEditBtn = document.getElementById('saveEditBtn');
+            if (saveEditBtn) {
+                saveEditBtn.onclick = async function() {
+                    const title = document.getElementById('editTitle').value.trim();
+                    const desc = document.getElementById('editDesc').value.trim();
+                    const price = parseFloat(document.getElementById('editPrice').value);
+                    const newImageFiles = document.getElementById('editImages').files;
+                    const id = editItemId;
+                    
+                    if (!title || !desc || isNaN(price)) {
+                        showToast('Please fill all fields', 'warning');
+                        return;
+                    }
+                    
+                    this.disabled = true;
+                    this.textContent = 'Saving...';
+                    
+                    try {
+                        const updateData = { title, description: desc, price };
+                        
+                        // If new images are selected, upload them and replace the images array
+                        if (newImageFiles && newImageFiles.length > 0) {
+                            const newImageUrls = await uploadImages(newImageFiles, 'editUploadProgress');
+                            updateData.images = newImageUrls;
+                        }
+                        
+                        await db.collection('listings').doc(id).update(updateData);
+                        showToast('Item updated!', 'success');
+                        document.getElementById('editModal').style.display = 'none';
+                        loadListings();
+                    } catch (err) {
+                        console.error('Edit error:', err);
+                        showToast('Error: ' + err.message, 'error');
+                    }
+                    
+                    this.disabled = false;
+                    this.textContent = '💾 Save Changes';
+                };
+            }
+
+            // Open edit modal function (called from listing card)
+            window.openEditModal = function(id, title, desc, price, images) {
+                if (!currentUser) { showToast('Please login to edit', 'warning'); return; }
+                editItemId = id;
+                document.getElementById('editTitle').value = title;
+                document.getElementById('editDesc').value = desc;
+                document.getElementById('editPrice').value = price;
+                
+                // Show current images (read‑only)
+                const container = document.getElementById('editCurrentImagesContainer');
+                container.innerHTML = '';
+                if (images && images.length) {
+                    images.forEach(img => {
+                        const imgEl = document.createElement('img');
+                        imgEl.src = img;
+                        container.appendChild(imgEl);
+                    });
+                } else {
+                    container.innerHTML = '<p style="color:#aaa;">No images</p>';
+                }
+                
+                // Clear file input and preview
+                document.getElementById('editImages').value = '';
+                document.getElementById('editImagePreview').innerHTML = '';
+                document.getElementById('editUploadProgress').style.display = 'none';
+                
+                document.getElementById('editModal').style.display = 'flex';
+            };
+
             loadListings();
             updateCartUI();
         });
@@ -672,6 +827,7 @@
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const id = doc.id;
+                    const isOwner = currentUser && data.userId === currentUser.uid;
                     const imagesHtml = data.images && data.images.length ?
                         `<div class="card-images">${data.images.map(img => `<img src="${img}">`).join('')}</div>` :
                         `<div class="card-images"><i class="fas fa-image"></i></div>`;
@@ -692,11 +848,14 @@
                                 <button class="btn-add-cart" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-cart-plus"></i> Add</button>
                                 <button class="btn-buy" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-bolt"></i> Buy</button>
                                 ${sellerPhone ? `<button class="btn-whatsapp" data-phone="${escapeHtml(sellerPhone)}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}"><i class="fab fa-whatsapp"></i> Chat</button>` : ''}
+                                ${isOwner ? `<button class="btn-edit" data-id="${id}" data-title="${escapeHtml(data.title)}" data-desc="${escapeHtml(data.description)}" data-price="${data.price}" data-images='${JSON.stringify(data.images)}'>✏️ Edit</button>` : ''}
                             </div>
                         </div>
                     </div>`;
                 });
                 grid.innerHTML = html;
+                
+                // Attach events
                 document.querySelectorAll('.btn-add-cart').forEach(b => {
                     b.onclick = function() {
                         addToCart({ id: this.dataset.id, title: this.dataset.title, price: parseFloat(this.dataset.price) });
@@ -715,6 +874,17 @@
                         window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
                     };
                 });
+                document.querySelectorAll('.btn-edit').forEach(b => {
+                    b.onclick = function() {
+                        const id = this.dataset.id;
+                        const title = this.dataset.title;
+                        const desc = this.dataset.desc;
+                        const price = this.dataset.price;
+                        let images = [];
+                        try { images = JSON.parse(this.dataset.images); } catch(e) {}
+                        openEditModal(id, title, desc, price, images);
+                    };
+                });
             });
         }
 
@@ -729,6 +899,9 @@
             document.getElementById('orderSummary').innerHTML = `<strong>Item:</strong> ${title}<br><strong>Price:</strong> KES ${price}<br><strong>Seller:</strong> ${seller}`;
             document.getElementById('orderModal').style.display = 'flex';
         }
+
+        // ==================== EDIT MODAL GLOBAL VARIABLE ====================
+        let editItemId = null;
 
         // ==================== AUTH STATE ====================
         auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
