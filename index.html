@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ===== ALL CSS (unchanged, plus .btn-edit) ===== */
+        /* ===== ALL CSS ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background: linear-gradient(145deg, #0f0c29, #302b63, #24243e); color: #e0e0e0; min-height: 100vh; }
         header { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -102,6 +102,22 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(59,130,246,0.4);
         }
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            flex: 1;
+            transition: transform 0.2s;
+        }
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+        }
         #editCurrentImagesContainer img {
             width: 60px;
             height: 60px;
@@ -155,7 +171,7 @@
                 <input type="number" id="itemPrice" placeholder="Price (KES) *">
                 <input type="text" id="sellerName" placeholder="Your Name *">
                 <input type="email" id="sellerEmail" placeholder="Your Email *">
-                <input type="tel" id="sellerPhone" placeholder="Phone (WhatsApp) *">
+                <input type="tel" id="sellerPhone" placeholder="Phone (WhatsApp) e.g. 254712345678">
                 
                 <!-- Cloudinary Upload Section -->
                 <label class="file-label" id="cloudinaryLabel">
@@ -225,7 +241,7 @@
         </div>
     </div>
 
-    <!-- ========== EDIT MODAL (with image replacement) ========== -->
+    <!-- Edit Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close" id="editModalClose">&times;</span>
@@ -281,6 +297,20 @@
             t.innerHTML = msg;
             container.appendChild(t);
             setTimeout(() => t.remove(), 3500);
+        }
+
+        // ==================== WHATSAPP NUMBER FORMATTER ====================
+        function formatWhatsAppNumber(phone) {
+            if (!phone) return '';
+            // Remove all non‑digits
+            let number = phone.replace(/\D/g, '');
+            // If it doesn't start with '254' (Kenya country code), prepend it
+            if (!number.startsWith('254')) {
+                // Remove any leading zeros (e.g., 0712345678 → 712345678)
+                number = number.replace(/^0+/, '');
+                number = '254' + number;
+            }
+            return number;
         }
 
         // ==================== CART ====================
@@ -364,7 +394,7 @@
             else console.warn(`Element #${id} not found`);
         }
 
-        // ==================== CLOUDINARY UPLOAD FUNCTION (for posting and editing) ====================
+        // ==================== CLOUDINARY UPLOAD ====================
         async function uploadImages(files, progressElementId) {
             if (!files || files.length === 0) return [];
             
@@ -412,7 +442,7 @@
             return urls;
         }
 
-        // ==================== FILE INPUT HANDLER ====================
+        // ==================== DOM READY ====================
         document.addEventListener('DOMContentLoaded', function() {
             // --- Post form: file input click handler via label ---
             const fileLabel = document.getElementById('cloudinaryLabel');
@@ -538,7 +568,7 @@
                 if (modal) modal.style.display = 'none';
             });
 
-            // ==================== POST ITEM (with Cloudinary upload) ====================
+            // ==================== POST ITEM ====================
             const postBtn = document.getElementById('postItemBtn');
             if (postBtn) {
                 postBtn.onclick = async function() {
@@ -601,7 +631,7 @@
                 };
             }
 
-            // ==================== LIVE VIDEO (unchanged) ====================
+            // ==================== LIVE VIDEO ====================
             const startBtn = document.getElementById('startLiveBtn');
             const joinBtn = document.getElementById('joinLiveBtn');
             const endBtn = document.getElementById('endLiveBtn');
@@ -667,7 +697,7 @@
                 };
             }
 
-            // ==================== CHECKOUT (unchanged) ====================
+            // ==================== CHECKOUT ====================
             const checkoutBtn = document.getElementById('checkoutBtn');
             if (checkoutBtn) {
                 checkoutBtn.onclick = function() {
@@ -686,7 +716,7 @@
                     const address = prompt('Delivery address:') || '';
                     msg += `👤 ${name}%0A📞 ${phone}%0A📍 ${address}`;
                     if (cart.length && cart[0].sellerPhone) {
-                        const sellerPhone = cart[0].sellerPhone.replace(/\D/g, '');
+                        const sellerPhone = formatWhatsAppNumber(cart[0].sellerPhone);
                         window.open(`https://wa.me/${sellerPhone}?text=${msg}`, '_blank');
                         db.collection('orders').add({
                             items: cart,
@@ -707,7 +737,7 @@
                 };
             }
 
-            // ==================== PLACE ORDER (unchanged) ====================
+            // ==================== PLACE ORDER ====================
             const placeOrderBtn = document.getElementById('placeOrderBtn');
             if (placeOrderBtn) {
                 placeOrderBtn.onclick = function() {
@@ -716,9 +746,9 @@
                     const address = document.getElementById('orderAddress').value.trim();
                     if (!name || !phone || !address) { showToast('Fill all fields', 'warning'); return; }
                     const msg = `🛒 *New Order from The Hive*%0A%0A📦 Item: ${currentOrder.title}%0A💰 Price: KES ${currentOrder.price}%0A👤 Buyer: ${name}%0A📞 Phone: ${phone}%0A📍 Address: ${address}%0A%0APlease confirm.`;
-                    const sellerPhone = currentOrder.phone;
+                    const sellerPhone = formatWhatsAppNumber(currentOrder.phone);
                     if (!sellerPhone) { showToast('Seller phone missing', 'error'); return; }
-                    window.open(`https://wa.me/${sellerPhone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                    window.open(`https://wa.me/${sellerPhone}?text=${msg}`, '_blank');
                     db.collection('orders').add({
                         itemId: currentOrder.id,
                         itemTitle: currentOrder.title,
@@ -735,13 +765,11 @@
                 };
             }
 
-            // ==================== EDIT FEATURE (with image replacement) ====================
-            // Edit modal close
+            // ==================== EDIT FEATURE ====================
             document.getElementById('editModalClose').onclick = function() {
                 document.getElementById('editModal').style.display = 'none';
             };
 
-            // Save edit (update title, description, price, and optionally replace images)
             const saveEditBtn = document.getElementById('saveEditBtn');
             if (saveEditBtn) {
                 saveEditBtn.onclick = async function() {
@@ -761,13 +789,10 @@
                     
                     try {
                         const updateData = { title, description: desc, price };
-                        
-                        // If new images are selected, upload them and replace the images array
                         if (newImageFiles && newImageFiles.length > 0) {
                             const newImageUrls = await uploadImages(newImageFiles, 'editUploadProgress');
                             updateData.images = newImageUrls;
                         }
-                        
                         await db.collection('listings').doc(id).update(updateData);
                         showToast('Item updated!', 'success');
                         document.getElementById('editModal').style.display = 'none';
@@ -782,15 +807,12 @@
                 };
             }
 
-            // Open edit modal function (called from listing card)
             window.openEditModal = function(id, title, desc, price, images) {
                 if (!currentUser) { showToast('Please login to edit', 'warning'); return; }
                 editItemId = id;
                 document.getElementById('editTitle').value = title;
                 document.getElementById('editDesc').value = desc;
                 document.getElementById('editPrice').value = price;
-                
-                // Show current images (read‑only)
                 const container = document.getElementById('editCurrentImagesContainer');
                 container.innerHTML = '';
                 if (images && images.length) {
@@ -802,12 +824,9 @@
                 } else {
                     container.innerHTML = '<p style="color:#aaa;">No images</p>';
                 }
-                
-                // Clear file input and preview
                 document.getElementById('editImages').value = '';
                 document.getElementById('editImagePreview').innerHTML = '';
                 document.getElementById('editUploadProgress').style.display = 'none';
-                
                 document.getElementById('editModal').style.display = 'flex';
             };
 
@@ -815,7 +834,7 @@
             updateCartUI();
         });
 
-        // ==================== LISTINGS ====================
+        // ==================== LISTINGS (with Delete) ====================
         function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[m]); }
 
         function loadListings() {
@@ -848,7 +867,10 @@
                                 <button class="btn-add-cart" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-cart-plus"></i> Add</button>
                                 <button class="btn-buy" data-id="${id}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}" data-phone="${escapeHtml(sellerPhone)}"><i class="fas fa-bolt"></i> Buy</button>
                                 ${sellerPhone ? `<button class="btn-whatsapp" data-phone="${escapeHtml(sellerPhone)}" data-title="${escapeHtml(data.title)}" data-price="${data.price}" data-seller="${escapeHtml(data.seller?.name)}"><i class="fab fa-whatsapp"></i> Chat</button>` : ''}
-                                ${isOwner ? `<button class="btn-edit" data-id="${id}" data-title="${escapeHtml(data.title)}" data-desc="${escapeHtml(data.description)}" data-price="${data.price}" data-images='${JSON.stringify(data.images)}'>✏️ Edit</button>` : ''}
+                                ${isOwner ? `
+                                    <button class="btn-edit" data-id="${id}" data-title="${escapeHtml(data.title)}" data-desc="${escapeHtml(data.description)}" data-price="${data.price}" data-images='${JSON.stringify(data.images)}'>✏️ Edit</button>
+                                    <button class="btn-delete" data-id="${id}">🗑️ Delete</button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -870,8 +892,9 @@
                     b.onclick = function() {
                         const phone = this.dataset.phone;
                         if (!phone) { showToast('No phone number', 'warning'); return; }
+                        const formatted = formatWhatsAppNumber(phone);
                         const msg = `Hello ${this.dataset.seller}, I'm interested in "${this.dataset.title}" for KES ${this.dataset.price}.`;
-                        window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                        window.open(`https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`, '_blank');
                     };
                 });
                 document.querySelectorAll('.btn-edit').forEach(b => {
@@ -883,6 +906,23 @@
                         let images = [];
                         try { images = JSON.parse(this.dataset.images); } catch(e) {}
                         openEditModal(id, title, desc, price, images);
+                    };
+                });
+                // Delete button
+                document.querySelectorAll('.btn-delete').forEach(b => {
+                    b.onclick = function() {
+                        const id = this.dataset.id;
+                        if (confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+                            db.collection('listings').doc(id).delete()
+                                .then(() => {
+                                    showToast('Listing deleted successfully.', 'success');
+                                    loadListings(); // refresh
+                                })
+                                .catch(err => {
+                                    console.error('Delete error:', err);
+                                    showToast('Error deleting listing: ' + err.message, 'error');
+                                });
+                        }
                     };
                 });
             });
@@ -900,82 +940,64 @@
             document.getElementById('orderModal').style.display = 'flex';
         }
 
-        // ==================== EDIT MODAL GLOBAL VARIABLE ====================
         let editItemId = null;
 
         // ==================== AUTH STATE ====================
         auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
+
         // ==================== RIGHT-CLICK & DEV TOOLS PROTECTION ====================
-(function protect() {
-    // 1. Disable right-click
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        if (typeof showToast === 'function') {
-            showToast('Right-click is disabled on this site.', 'warning');
-        } else {
-            alert('Right-click is disabled.');
-        }
-        return false;
-    });
+        (function protect() {
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                if (typeof showToast === 'function') {
+                    showToast('Right-click is disabled on this site.', 'warning');
+                }
+                return false;
+            }, { capture: true });
 
-    // 2. Disable keyboard shortcuts for dev tools
-    const blockedKeys = {
-        'F12': 123,
-        'I': 73,    // Ctrl+Shift+I
-        'J': 74,    // Ctrl+Shift+J
-        'U': 85,    // Ctrl+U
-        'S': 83     // Ctrl+S
-    };
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F12' || e.keyCode === 123) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Developer tools are disabled.', 'warning');
+                    }
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Inspect element is disabled.', 'warning');
+                    }
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Console is disabled.', 'warning');
+                    }
+                    return false;
+                }
+                if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.keyCode === 85)) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('View source is disabled.', 'warning');
+                    }
+                    return false;
+                }
+                if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Save page is disabled.', 'warning');
+                    }
+                    return false;
+                }
+            }, { capture: true });
 
-    document.addEventListener('keydown', function(e) {
-        // F12
-        if (e.key === 'F12' || e.keyCode === 123) {
-            e.preventDefault();
-            if (typeof showToast === 'function') {
-                showToast('Developer tools are disabled.', 'warning');
-            }
-            return false;
-        }
-        // Ctrl+Shift+I (Inspect)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
-            e.preventDefault();
-            if (typeof showToast === 'function') {
-                showToast('Inspect element is disabled.', 'warning');
-            }
-            return false;
-        }
-        // Ctrl+Shift+J (Console)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
-            e.preventDefault();
-            if (typeof showToast === 'function') {
-                showToast('Console is disabled.', 'warning');
-            }
-            return false;
-        }
-        // Ctrl+U (View Source)
-        if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.keyCode === 85)) {
-            e.preventDefault();
-            if (typeof showToast === 'function') {
-                showToast('View source is disabled.', 'warning');
-            }
-            return false;
-        }
-        // Ctrl+S (Save page)
-        if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
-            e.preventDefault();
-            if (typeof showToast === 'function') {
-                showToast('Save page is disabled.', 'warning');
-            }
-            return false;
-        }
-    });
-
-    // 3. (Optional) Prevent selection and dragging on images (enhances protection)
-    document.querySelectorAll('img').forEach(img => {
-        img.setAttribute('draggable', 'false');
-        img.addEventListener('dragstart', (e) => e.preventDefault());
-    });
-})();
+            document.querySelectorAll('img').forEach(img => {
+                img.setAttribute('draggable', 'false');
+                img.addEventListener('dragstart', (e) => e.preventDefault());
+            });
+        })();
     </script>
 </body>
 </html>
