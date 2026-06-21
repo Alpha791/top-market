@@ -905,6 +905,77 @@
 
         // ==================== AUTH STATE ====================
         auth.onAuthStateChanged(user => { updateAuthUI(user); loadListings(); });
+        // ==================== RIGHT-CLICK & DEV TOOLS PROTECTION ====================
+(function protect() {
+    // 1. Disable right-click
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        if (typeof showToast === 'function') {
+            showToast('Right-click is disabled on this site.', 'warning');
+        } else {
+            alert('Right-click is disabled.');
+        }
+        return false;
+    });
+
+    // 2. Disable keyboard shortcuts for dev tools
+    const blockedKeys = {
+        'F12': 123,
+        'I': 73,    // Ctrl+Shift+I
+        'J': 74,    // Ctrl+Shift+J
+        'U': 85,    // Ctrl+U
+        'S': 83     // Ctrl+S
+    };
+
+    document.addEventListener('keydown', function(e) {
+        // F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            if (typeof showToast === 'function') {
+                showToast('Developer tools are disabled.', 'warning');
+            }
+            return false;
+        }
+        // Ctrl+Shift+I (Inspect)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
+            e.preventDefault();
+            if (typeof showToast === 'function') {
+                showToast('Inspect element is disabled.', 'warning');
+            }
+            return false;
+        }
+        // Ctrl+Shift+J (Console)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
+            e.preventDefault();
+            if (typeof showToast === 'function') {
+                showToast('Console is disabled.', 'warning');
+            }
+            return false;
+        }
+        // Ctrl+U (View Source)
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.keyCode === 85)) {
+            e.preventDefault();
+            if (typeof showToast === 'function') {
+                showToast('View source is disabled.', 'warning');
+            }
+            return false;
+        }
+        // Ctrl+S (Save page)
+        if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
+            e.preventDefault();
+            if (typeof showToast === 'function') {
+                showToast('Save page is disabled.', 'warning');
+            }
+            return false;
+        }
+    });
+
+    // 3. (Optional) Prevent selection and dragging on images (enhances protection)
+    document.querySelectorAll('img').forEach(img => {
+        img.setAttribute('draggable', 'false');
+        img.addEventListener('dragstart', (e) => e.preventDefault());
+    });
+})();
     </script>
 </body>
 </html>
