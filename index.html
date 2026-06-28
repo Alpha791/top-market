@@ -1756,7 +1756,7 @@
                     if (progressText) progressText.textContent = `Uploading ${i+1}/${maxFiles}: ${file.name}`;
 
                     const response = await fetch(
-                        `https://api.cloudinary.com/v1_1/${dpsj8cuoq}/image/upload`, {
+                        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
                             method: 'POST',
                             body: formData
                         }
