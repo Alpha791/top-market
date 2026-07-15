@@ -832,7 +832,7 @@
 
                 <!-- Cloudinary Upload -->
                 <label class="file-label" id="cloudinaryLabel">
-                    <i class="fas fa-cloud-upload-alt"></i> Click to upload images (max 3)
+                    <i class="fas fa-cloud-upload-alt">
                 </label>
                 <input type="file" id="itemImages" accept="image/*" multiple style="display:none;" />
                 <div id="imagePreview" class="image-preview">
@@ -1093,7 +1093,7 @@
             showToast('Item removed', 'info');
         };
 
-        // ==================== AUTH UI ====================
+        // ==================== AUTH UI (FIXED with onSnapshot) ====================
         function updateAuthUI(user) {
             currentUser = user;
             const loginBtn = document.getElementById('showLoginBtn');
@@ -1102,20 +1102,39 @@
             const userName = document.getElementById('userName');
             const userRole = document.getElementById('userRole');
             const postForm = document.getElementById('postForm');
+
             if (user) {
                 if (loginBtn) loginBtn.style.display = 'none';
                 if (signupBtn) signupBtn.style.display = 'none';
                 if (userInfo) userInfo.style.display = 'flex';
                 if (userName) userName.textContent = user.displayName || user.email.split('@')[0];
-                db.collection('users').doc(user.uid).get().then(doc => {
+
+                // --- Use onSnapshot to listen for real-time role changes ---
+                const unsub = db.collection('users').doc(user.uid).onSnapshot(doc => {
                     if (doc.exists) {
                         const role = doc.data().role || 'Buyer';
                         currentUserRole = role;
                         if (userRole) userRole.textContent = role;
                         if (postForm) postForm.style.display = (role === 'Seller') ? 'block' : 'none';
+                    } else {
+                        // Document not yet created; keep default (Buyer) until it exists
+                        currentUserRole = 'Buyer';
+                        if (userRole) userRole.textContent = 'Buyer';
+                        if (postForm) postForm.style.display = 'none';
                     }
-                }).catch(() => {});
+                }, error => {
+                    console.warn('Error fetching user role:', error);
+                });
+
+                // Store the unsubscribe function to clean up on logout
+                window._userUnsub = unsub;
+
             } else {
+                // Clear the listener if it exists
+                if (window._userUnsub) {
+                    window._userUnsub();
+                    window._userUnsub = null;
+                }
                 if (loginBtn) loginBtn.style.display = 'inline-block';
                 if (signupBtn) signupBtn.style.display = 'inline-block';
                 if (userInfo) userInfo.style.display = 'none';
