@@ -1,0 +1,48 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main" ]          # change to "master" if that's your default branch
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * *'          # runs daily at midnight UTC (optional)
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: javascript-typescript
+          build-mode: none          # no build step needed for static HTML/JS
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # No extra setup is required – we use 'build-mode: none'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        # Enable extended security and quality rules (recommended)
+        queries: security-extended,security-and-quality
+
+    # Since build-mode is 'none', this step is skipped automatically.
+    # If you ever change to 'manual', you would add build commands here.
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
